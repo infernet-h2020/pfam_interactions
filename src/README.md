@@ -61,14 +61,14 @@ Matches:
 2146839	321365921	2WSS	PF02874	P19483	A	24	NULL	92	NULL	67	135	2dcf00
 2146880	321365921	2WSS	PF02874	P19483	C	27	NULL	92	NULL	70	135	2dcf00
 2146885	321365921	2WSS	PF02874	P19483	J	24	NULL	92	NULL	67	135	2dcf00
-``` 
+```
 
 * *Backmap* shows, for each occurrence of the Pfam domain, the PDB residue index range where it
 was backmapped. To give the Pfam domain an unambiguous label, the Pfam accession number is
 complemented with the 1-letter PDB chain name followed by a progressive index (starting form 1),
 should more than one occurrence of the same Pfam domain be found in the same chain.
 
-``` 
+```
 Backmap: 
 PF02874_A1: A 26-92
 PF02874_B1: B 26-92
@@ -93,7 +93,7 @@ Pfam domain, the only type that can be found is "same", which states that the fi
 the DCA indices of a contact prediction made on a simple, single-domain Pfam MSA to the distances
 between residues contained in the same occurrence of the Pfam domain on the selected PDB.
 
-``` 
+```
 Interactions:
 	calculating distances	(pickled!)	00:00:00
 	preparing support data for calculating interactions	00:00:03
@@ -110,7 +110,7 @@ PF02874 PF02874 8 PF02874_PF02874_2wss_L1_L1.txt same
 PF02874 PF02874 9 PF02874_PF02874_2wss_M1_M1.txt same
 PF02874 PF02874 10 PF02874_PF02874_2wss_N1_N1.txt same
 PF02874 PF02874 11 PF02874_PF02874_2wss_O1_O1.txt same
-``` 
+```
 
 Each output interaction file reports the following information: DCA index of the two residues considered,
 their PDB chain name and residue index, distances (respectively: minimum distance, minimum distance 
@@ -259,7 +259,7 @@ PF00017_PF00041_4je4_A1_B1.txt	    27	    97	A   	  32	B   	  21	     28.26	    
 PF00017_PF00041_4je4_A1_B1.txt	     5	   139	A   	  10	B   	  61	     22.66	     22.66	     22.66	Q06124_10_N	P02751_1506_S	0.09932	820
 PF00017_PF00041_4je4_A1_B1.txt	    27	   140	A   	  32	B   	  62	     24.88	     24.88	     24.88	Q06124_32_R	P02751_1507_G	0.09222	925
 PF00017_PF00041_4je4_A1_B1.txt	    11	   105	A   	  16	B   	  26	     27.35	     27.35	     27.35	Q06124_16_A	P02751_1472_A	0.09086	954
-``` 
+```
 
 ### Testing domain-domain interactions without the structure of the complex
 
