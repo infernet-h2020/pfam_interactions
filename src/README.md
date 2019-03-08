@@ -47,7 +47,7 @@ The stdout is divided into three parts:
 * *Matches* shows all the occurrences of the selected Pfam domain in the selected PDB structure.
 In the example, it finds 12 occurrences, one in each of the 12 chains of the structure.
 
-`
+```
 Matches:
 2146595	321159490	2WSS	PF02874	P00829	E	13	NULL	79	NULL	63	129	2dcf00
 2146624	321159490	2WSS	PF02874	P00829	N	13	NULL	79	NULL	63	129	2dcf00
@@ -61,14 +61,14 @@ Matches:
 2146839	321365921	2WSS	PF02874	P19483	A	24	NULL	92	NULL	67	135	2dcf00
 2146880	321365921	2WSS	PF02874	P19483	C	27	NULL	92	NULL	70	135	2dcf00
 2146885	321365921	2WSS	PF02874	P19483	J	24	NULL	92	NULL	67	135	2dcf00
-`
+``` 
 
 * *Backmap* shows, for each occurrence of the Pfam domain, the PDB residue index range where it
 was backmapped. To give the Pfam domain an unambiguous label, the Pfam accession number is
 complemented with the 1-letter PDB chain name followed by a progressive index (starting form 1),
 should more than one occurrence of the same Pfam domain be found in the same chain.
 
-`
+``` 
 Backmap: 
 PF02874_A1: A 26-92
 PF02874_B1: B 26-92
@@ -82,7 +82,7 @@ PF02874_L1: L 30-92
 PF02874_M1: M 13-79
 PF02874_N1: N 13-79
 PF02874_O1: O 13-79
-`
+```
 
 * *Interactions* reports the location of the output interaction file relative to each occurrence
 of the selected Pfam domain. The first two fields of the summary table specify which two Pfam 
@@ -93,7 +93,7 @@ Pfam domain, the only type that can be found is "same", which states that the fi
 the DCA indices of a contact prediction made on a simple, single-domain Pfam MSA to the distances
 between residues contained in the same occurrence of the Pfam domain on the selected PDB.
 
-`
+``` 
 Interactions:
 	calculating distances	(pickled!)	00:00:00
 	preparing support data for calculating interactions	00:00:03
@@ -110,7 +110,7 @@ PF02874 PF02874 8 PF02874_PF02874_2wss_L1_L1.txt same
 PF02874 PF02874 9 PF02874_PF02874_2wss_M1_M1.txt same
 PF02874 PF02874 10 PF02874_PF02874_2wss_N1_N1.txt same
 PF02874 PF02874 11 PF02874_PF02874_2wss_O1_O1.txt same
-`
+``` 
 
 Each output interaction file reports the following information: DCA index of the two residues considered,
 their PDB chain name and residue index, distances (respectively: minimum distance, minimum distance 
@@ -118,7 +118,7 @@ between side chains, distance between C\_alphas), their uniprot reference (unipr
 residue index and residue type, all condensed in one field and separated by underscores).
 This is an extract from "PF02874\_PF02874\_2wss\_A1\_A1.txt":
 
-`
+```
      3       3  A         26    A         26           0.0             0.0             0.0      P19483_69_E     P19483_69_E
      3       4  A         26    A         27         1.322           3.779           3.779      P19483_69_E     P19483_70_E
      3       5  A         26    A         28         3.305           5.582           5.582      P19483_69_E     P19483_71_T
@@ -130,7 +130,7 @@ This is an extract from "PF02874\_PF02874\_2wss\_A1\_A1.txt":
      3      11  A         26    A         34         20.36           20.36           20.36      P19483_69_E     P19483_77_I
      3      12  A         26    A         35          23.7            23.7            23.7      P19483_69_E     P19483_78_G
      3      13  A         26    A         36         25.69           25.69           25.69      P19483_69_E     P19483_79_D
-`
+```
 
 It should be noted that, so far, we haven't made use of any file containing DCA contact predictions.
 Indeed, **as long as dca2pdb runs the same version of Pfam used in the DCA predictions**, the program does
@@ -244,7 +244,7 @@ distances, their uniprot notation, the DCA score of the pair and the rank of the
 The last line reports the path where to find this table saved as a text file. 
 Here are reported the first entries:
 
-`
+```
 Strongest DCA signals mapped on closest residue pairs:
 PF00017_PF00041_5dc0_B1_A1.txt	    36	    92	B   	 180	A   	  16	     28.44	     28.44	     28.44	None	P02751_1462_T	0.16359	317
 PF00017_PF00041_5dc9_A1_B1.txt	    22	    80	A   	 166	B   	   6	     12.61	     14.96	     15.51	P00519_147_G	P02751_1450_V	0.12042	573
@@ -259,7 +259,7 @@ PF00017_PF00041_4je4_A1_B1.txt	    27	    97	A   	  32	B   	  21	     28.26	    
 PF00017_PF00041_4je4_A1_B1.txt	     5	   139	A   	  10	B   	  61	     22.66	     22.66	     22.66	Q06124_10_N	P02751_1506_S	0.09932	820
 PF00017_PF00041_4je4_A1_B1.txt	    27	   140	A   	  32	B   	  62	     24.88	     24.88	     24.88	Q06124_32_R	P02751_1507_G	0.09222	925
 PF00017_PF00041_4je4_A1_B1.txt	    11	   105	A   	  16	B   	  26	     27.35	     27.35	     27.35	Q06124_16_A	P02751_1472_A	0.09086	954
-` 
+``` 
 
 ### Testing domain-domain interactions without the structure of the complex
 
@@ -275,10 +275,10 @@ python3 dca2pdb.py -pf PF00940 -pdb 3e2e -a -vmd </path/to/bin/vmd>
 you have to type the path of the VMD executable after the -vmd flag.
 The last section of the stdout summary is:
 
-`
+```
 SASA:
 ../examples/results/3e2e_SASA.txt
-`
+``` 
 
 and tells where to find the solvent accessible surface area analysis for the chosen domain.
 
