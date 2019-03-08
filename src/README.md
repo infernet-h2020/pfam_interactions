@@ -278,7 +278,7 @@ The last section of the stdout summary is:
 ```
 SASA:
 ../examples/results/3e2e_SASA.txt
-``` 
+```
 
 and tells where to find the solvent accessible surface area analysis for the chosen domain.
 
