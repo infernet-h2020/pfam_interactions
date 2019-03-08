@@ -32,5 +32,34 @@ To install, just navigate to the main folder of the package and type
 
 There are no options to set.
 
+
+
+<a name="infernet_logo"/>
+<div align="center">
+<a href="http://www.infernet.eu/" target="_blank">
+<img src="http://www.infernet.eu/wp-content/uploads/2017/03/INFERNET_Wordmark_HR.png" alt="infernet logo" width="200" height="50"></img>
+</a>
+</div>
+
+
+This work is supported by [INFERNET](http://www.infernet.eu) : "New algorithms for inference and optimization from large-scale biological data".
+
+<a name="eu_banner"/>
+<div align="center">
+<a href="https://europa.eu/european-union/index_en" target="_blank">
+<img src="http://www.infernet.eu/wp-content/uploads/2017/03/flag_yellow_high.jpg" alt="eu banner" width="40" height="30"></img>
+</a>
+</div>
+
+<p align="center"><sup>
+The INFERNET project is co-funded by the European Union’s H2020 research and innovation programme under the Marie Sklodowska-Curie grant agreement number 734439.
+</sup>
+</p>
+
+
+
+
+
+
 [pfam]: https://pfam.xfam.org/
 [pdb]: https://www.rcsb.org/
