@@ -1,0 +1,4 @@
+_*
+.cache/
+db/external_resources/
+db/interaction_database/*.txt
