@@ -21,10 +21,11 @@ database_filenames_filename = options['support_files'] + "database_filenames.txt
 if os.path.exists(pfam_version_path):
 	print("Pfam version {0} is already present".format(pfam_version))
 else:
-	database_files_path = options['database_files_relpath']
+	os.mkdir(options['pfam_version_main'])
+	os.mkdir(options['database_files_relpath'])
 
 	print("Downloading files from Pfam:")
 	with open(database_filenames_filename) as database_filenames_file:
 		for line in database_filenames_file:
 			database_filename = line.strip()
-			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/database_files/{1}.gz -O {2}/{1}.gz".format(pfam_version, database_filename, database_files_path))
+			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/database_files/{1}.gz -O {2}/{1}.gz".format(pfam_version, database_filename, options['database_files_relpath']))
