@@ -285,7 +285,7 @@ and tells where to find the solvent accessible surface area analysis for the cho
 ## Developer's Guide
 
 The DCA-2-PDB suite makes use of the precomputed Pfam interaction benchmark presented in
-this repository as well as of several files taken directly from the [Pfam][pfam] database,  
+this repository as well as of several files taken directly from the [Pfam][pfam] database,
 which are used in order to faithfully backmap the DCA predictions onto the PDB structures.
 
 The guide to the algorithm is coming soon.

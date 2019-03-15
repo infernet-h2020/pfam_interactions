@@ -3,7 +3,7 @@ import sys
 from support import *
 
 # Hardcoded paths
-this_path = os.path.dirname(os.path.abspath(__file__))
+this_path = os.path.dirname(os.path.abspath(__file__)) + '/'
 database_path = this_path + "../db/external_resources/"
 database_filenames_filename = "support_files/database_filenames.txt"
 
