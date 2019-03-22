@@ -28,4 +28,5 @@ else:
 	with open(database_filenames_filename) as database_filenames_file:
 		for line in database_filenames_file:
 			database_filename = line.strip()
-			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/database_files/{1}.gz -O {2}/{1}.gz".format(pfam_version, database_filename, options['database_files_relpath']))
+			print("\t{0}".format(database_filename))
+			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/database_files/{1}.gz -O {2}/{1}.gz 2&>1 > /dev/null".format(pfam_version, database_filename, options['database_files_relpath']))
