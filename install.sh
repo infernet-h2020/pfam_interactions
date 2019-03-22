@@ -26,9 +26,9 @@ find ${DIR}/db/interaction_database/ -name '*.tgz' -execdir tar -xzvf '{}' \;
 
 
 echo "Upgrading pip..."
-pip install --upgrade pip 
+pip install --upgrade pip 2&>1 > /dev/null
 echo "Checking python3 packages..."
-pip install -r python3_requirements.txt
+pip install -r python3_requirements.txt 2&>1 > /dev/null
 
 
 # Download Pfam version and unzip files
