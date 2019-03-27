@@ -195,7 +195,7 @@ the DCA length of Pfam PF00017 being 78.
 For calculating the PPV, we can run the usual command:
 
 `
-python3 quality_assessment.py -int ../examples/results/PF00017_PF00041_5dc0_B1_A1.txt -dca ../examples/Pfam_32_uniprot/plmDCA_result/PF00017_PF00041_plmdca.txt
+python3 quality_assessment.py -int ../examples/results/PF00017_PF00041_5dc0_B1_A1.txt -dca ../examples/plmDCA_outputs/PF00017_PF00041_plmdca.txt
 `
 
 ### Combining the coordinates of multiple structures

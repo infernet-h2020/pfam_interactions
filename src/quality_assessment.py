@@ -19,7 +19,7 @@ def main_parser():
 		options[x] = string_decode_element(parsed.__dict__[x], permissive=True, simple_version=True)
 #	print(options)
 
-	main_ppv.ppv(options['interaction_filename'], options['dca_filename'], options['dist_thr'], options['distance_type'])
+	main_ppv.ppv(options['interaction_filename'], options['dca_filename'], options['dist_thr'], options['distance_type'], options['results_folder'])
 
 if __name__ == "__main__":
 	main_parser()

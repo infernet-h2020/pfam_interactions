@@ -22,12 +22,13 @@ fi
 
 
 # Untar interaction benchmark
-echo "Decompressing Pfam interaction database"
+echo "Decompressing Pfam interaction database..."
 find ${DIR}/db/interaction_database/ -name '*.tgz' -execdir tar -xzvf '{}' \ >/dev/null 2>&1
+echo ""
 
 
 echo "Upgrading pip..."
-pip install --upgrade pip 2&>1 > /dev/null
+pip install --upgrade pip >/dev/null 2>&1
 echo ""
 
 echo "Checking python3 packages..."
