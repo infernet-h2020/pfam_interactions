@@ -22,7 +22,8 @@ fi
 
 
 # Untar interaction benchmark
-find ${DIR}/db/interaction_database/ -name '*.tgz' -execdir tar -xzvf '{}' \;
+echo "Decompressing Pfam interaction database"
+find ${DIR}/db/interaction_database/ -name '*.tgz' -execdir tar -xzvf '{}' \ >/dev/null 2>&1
 
 
 echo "Upgrading pip..."
@@ -30,7 +31,7 @@ pip install --upgrade pip 2&>1 > /dev/null
 echo ""
 
 echo "Checking python3 packages..."
-pip install -r python3_requirements.txt 2&>1 > /dev/null
+pip install -r python3_requirements.txt >/dev/null 2>&1
 
 # Download Pfam version and unzip files
 python3 ${DIR}/src/change_pfam_version.py ${version}
