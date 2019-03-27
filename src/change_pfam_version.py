@@ -29,4 +29,4 @@ else:
 		for line in database_filenames_file:
 			database_filename = line.strip()
 			print("\t{0}".format(database_filename))
-			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/database_files/{1}.gz -O {2}/{1}.gz 2&>1 > /dev/null".format(pfam_version, database_filename, options['database_files_relpath']))
+			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/database_files/{1}.gz -O {2}/{1}.gz 2>&1 > /dev/null".format(pfam_version, database_filename, options['database_files_relpath']))

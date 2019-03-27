@@ -27,18 +27,19 @@ find ${DIR}/db/interaction_database/ -name '*.tgz' -execdir tar -xzvf '{}' \;
 
 echo "Upgrading pip..."
 pip install --upgrade pip 2&>1 > /dev/null
+echo ""
+
 echo "Checking python3 packages..."
 pip install -r python3_requirements.txt 2&>1 > /dev/null
-
 
 # Download Pfam version and unzip files
 python3 ${DIR}/src/change_pfam_version.py ${version}
 
 echo "Decompressing." 
-echo "Warning: These will the sizes of the decompressed files"
+echo "Warning: the decompressed files will take up these amounts of disk space:"
 for fn in `find ${DIR}/db/external_resources/Pfam_${version}/database_files/ -name '*.gz'`
 do
-        gzip -dc ${fn} | wc -c | ${DIR}/src/byte_to_human.sh | sed 's/^[ \t]*//;s/[ \t]*$//' | awk -v fn=${fn} '{print fn, $0}'
+        gzip -dc ${fn} | wc -c | ${DIR}/src/byte_to_human.sh | sed 's/^[ \t]*//;s/[ \t]*$//' | awk -v fn=`basename ${fn}` 'NF>1{print fn, $0}'
 done
 
 while true
