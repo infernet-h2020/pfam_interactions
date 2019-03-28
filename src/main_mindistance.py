@@ -21,12 +21,14 @@ def main_mindistance(options):
 	dca_filename = options['dca_filename']
 	only_intra = options['only_intra']
 	only_inter = options['only_inter']
-	find_str = options['find_str']
+	find_str = options['find_structures']
 	inch1 = ''
 	inch2 = ''
 
 	if not dca_filename:
 		print("ERROR: mindist needs a precomputed plmdca filename")
+	if find_str:
+		mindist = 'all'
 	
 	mind_pdbs = []
 	if mindist == 'all':

@@ -78,7 +78,7 @@ def main_parser():
 
 	if options['accessibility'] == True:
 		main_accessibility.main_accessibility(options)
-	elif type(options['min_dist']) != type(None):
+	elif type(options['min_dist']) != type(None) or options['find_structures'] == True:
 		main_mindistance.main_mindistance(options)
 	else:
 		main_interactions.main_interactions(options)
