@@ -10,6 +10,7 @@ def main_mindistance(options):
 	inpfam1 = options['inpfam1']
 	inpfam2 = options['inpfam2']
 	pfam_pfam_filename = options['pfam_pfam_filename']
+	pfam_pdbmap = options['pfam_pdbmap']
 	pdb_pfam_filename = options['pdb_pfam_filename']
 	pdb_uniprot_res_filename = options['pdb_uniprot_res_filename']
 	pfam_uniprot_stockholm_relpath = options['pfam_uniprot_stockholm_relpath']
@@ -22,22 +23,44 @@ def main_mindistance(options):
 	only_intra = options['only_intra']
 	only_inter = options['only_inter']
 	find_str = options['find_structures']
+	check_architecture = True
 	inch1 = ''
 	inch2 = ''
 
-	if not dca_filename:
+	if not dca_filename and not find_str:
 		print("ERROR: mindist needs a precomputed plmdca filename")
 	if find_str:
 		mindist = 'all'
 	
 	mind_pdbs = []
 	if mindist == 'all':
-		text = subprocess.run(["grep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam1, pfam_pfam_filename, inpfam2)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
-		for line in text:
-			if not line:
-				continue
-			if line.strip() not in mind_pdbs:
-				mind_pdbs.append(line.strip())
+		if inpfam:
+			text = subprocess.run(["grep {0} {1} | awk '{{print substr($1, 1, length($1)-1)}}'".format(inpfam, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+			if check_architecture:
+				print("grep {0} {1} | awk '$1==$2{{print $3}}'".format(inpfam, pfam_pfam_filename))
+				textint = subprocess.run(["grep {0} {1} | awk '$1==$2{{print $3}}'".format(inpfam, pfam_pfam_filename)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+				textint = set(textint)
+			for line in text:
+				if not line:
+					continue
+				pdbname = line.strip().lower()
+				if check_architecture:
+					if pdbname not in textint:
+						if pdbname not in mind_pdbs:
+							mind_pdbs.append(pdbname)
+					else:
+						print(pdbname, "removed")
+		else:
+			text = subprocess.run(["grep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam1, pfam_pfam_filename, inpfam2)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+			for line in text:
+				if not line:
+					continue
+				pdbname = line.strip().lower()
+				text1 = subprocess.run(["grep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam1, pfam_pdbmap, pdbname.upper())], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8')
+				text2 = subprocess.run(["grep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam2, pfam_pdbmap, pdbname.upper())], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8')
+				if text1.strip() and text2.strip():
+					if pdbname not in mind_pdbs:
+						mind_pdbs.append(pdbname)
 		mind_pdbs = sorted(list(mind_pdbs))
 	else:
 		if os.path.exists(mindist):
@@ -112,4 +135,7 @@ def main_mindistance(options):
 		print(interpolated_pdbs_string+"\n")
 
 
-	mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pfam_filename)
+	if inpfam:
+		mindistance.mindistance(mind_pdbs, inpfam, inpfam, only_intra, only_inter, results_folder, dca_filename, pfam_pfam_filename)
+	else:
+		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pfam_filename)

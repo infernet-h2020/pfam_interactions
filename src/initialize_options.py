@@ -20,7 +20,8 @@ def initialize_options(version):
 	options['database_files_relpath']         = options['pfam_version_main']      + "database_files/"            # Folder where the external files from the Pfam database are kept
 	options['pdb_pfam_filename']              = options['database_files_relpath'] + "pdb_pfamA_reg.txt"          # Register cennecting PDB and Pfam information
 	options['pdb_uniprot_res_filename']       = options['database_files_relpath'] + "pdb_residue_data.txt"       # Register with residue-by-residue details
-	options['pfam_uniprot_filename']          = options['database_files_relpath'] + "uniprot_reg_full.txt"       # Register connecting UniProt and Pfam information	
+	options['pfam_uniprot_filename']          = options['database_files_relpath'] + "uniprot_reg_full.txt"       # Register connecting UniProt and Pfam information
+	options['pfam_pdbmap']                    = options['database_files_relpath'] + "pdbmap"
 	options['interaction_database']           = options['db']                     + "interaction_database/"
 	options['pfam_pfam_filename']             = options['interaction_database']   + "PfamPfam_contacts_through_all_PDBs_table.txt"
 	options['cache']                          = options['main']                   + ".cache/"
