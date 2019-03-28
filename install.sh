@@ -23,7 +23,7 @@ fi
 
 # Untar interaction benchmark
 echo "Decompressing Pfam interaction database..."
-find ${DIR}/db/interaction_database/ -name '*.tgz' -execdir tar -xzvf '{}' \ >/dev/null 2>&1
+find ${DIR}/db/interaction_database/ -name '*.tgz' -execdir tar -xzvf '{}' \; >/dev/null 2>&1
 echo ""
 
 
