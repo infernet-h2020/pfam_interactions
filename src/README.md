@@ -214,6 +214,14 @@ python3 dca2pdb.py -pf1 PF00017 -pf2 PF00041 -dca ../examples/plmDCA_outputs/PF0
 
 Note the absence of the `-pdb` keyword, which now is overridden by `-mind`, and the presence of -dca,
 which so far was seen only in the quality\_assessment.py algorithm.
+The program will tell which PDB structures are considered likely to have both Pfam families:
+
+```
+Considering the following PDBs:
+3k2m, 3t04, 3uyo, 4je4, 4jeg, 4jmg, 4jmh, 5dc0, 5dc4, 5dc9, 5mtj, 5mtm, 5mtn
+```
+
+
 The program will go through several cycles of backmapping and interaction calculations, one for each 
 structure considered. The backmapping routine will fail on some of these structures, and will give the
 following error:
@@ -226,6 +234,15 @@ This is due to the fact that some of the PDB structures that are deemed to conta
 according to the Pfam interaction benchmark might not in fact strictly contain one or both the domains
 according to the internal Pfam database annotations, which adopt stricter definitions. In order to know
 more about this topic, please read through the README file of the complete\_databases/ folder. 
+At the end of this procedure, the program will inform the user on the structures that have been actually
+found to contain the Pfam families:
+
+```
+PDBs effectively interpolated:
+4je4, 4jeg, 5dc0, 5dc4, 5dc9
+```
+
+In case none is found, the algorithm will stop at this point.
 
 When all structures have been searched for interactions, the information of the ones correctly backmapped
 is merged, in order to retain for each DCA residue-residue pair the information relative to the PDB structure
@@ -260,6 +277,15 @@ PF00017_PF00041_4je4_A1_B1.txt	     5	   139	A   	  10	B   	  61	     22.66	    
 PF00017_PF00041_4je4_A1_B1.txt	    27	   140	A   	  32	B   	  62	     24.88	     24.88	     24.88	Q06124_32_R	P02751_1507_G	0.09222	925
 PF00017_PF00041_4je4_A1_B1.txt	    11	   105	A   	  16	B   	  26	     27.35	     27.35	     27.35	Q06124_16_A	P02751_1472_A	0.09086	954
 ```
+
+In some cases, one would like to restrict the number of structures condsidered. This is why the `mind`
+argument can also take a path to a text file containing a single column with all desired PDB codes.
+As an example, inspect `support_files/template_pdb_list_for_mindist.txt`.
+This command will then take into account the first five structures listed above:
+
+`
+python3 dca2pdb.py -pf1 PF00017 -pf2 PF00041 -dca ../examples/plmDCA_outputs/PF00017_PF00041_plmdca.txt -mind support_files/template_pdb_list_for_mindist.txt
+`
 
 ### Testing domain-domain interactions without the structure of the complex
 

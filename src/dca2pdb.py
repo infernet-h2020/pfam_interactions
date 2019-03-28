@@ -1,3 +1,5 @@
+#!/bin/python3
+
 import initialize_options
 import main_accessibility
 import main_interactions
@@ -24,6 +26,7 @@ def main_parser():
 	parser.add_argument('-inter', '--only_inter', action='store_const', const='True', default='False')
 	parser.add_argument('-v', '--pfam_version', nargs='?', default='32')
 	parser.add_argument('-out', '--output_path', nargs='?', default='None')
+	parser.add_argument('-find_str', '--find_structures', action='store_const', const='True', default='False')
 
 	# Default values for optional arguments
 	parser.set_defaults(pdbname = 'None')

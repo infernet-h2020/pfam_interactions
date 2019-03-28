@@ -21,6 +21,7 @@ def main_mindistance(options):
 	dca_filename = options['dca_filename']
 	only_intra = options['only_intra']
 	only_inter = options['only_inter']
+	find_str = options['find_str']
 	inch1 = ''
 	inch2 = ''
 
@@ -49,8 +50,22 @@ def main_mindistance(options):
 			print("ERROR: The file specifying the PDB names for the mindist analysis cannot be found")
 			exit(1)
 
-	print("\nConsidering the following PDBs:")
-	print("".join([x+", " for x in mind_pdbs])[:-2]+"\n")
+	structures_found_str = "".join([x+", " for x in mind_pdbs])[:-2]
+	if find_str:
+		print("\nPDBs found to contain the queried pfam(s):")
+		print(structures_found_str+"\n")
+		if inpfam:
+			output_list_filename = results_folder + inpfam + "_structlist.txt"
+		else:
+			output_list_filename = results_folder + inpfam1 + "_" + inpfam2 + "_structlist.txt" 
+		with open(output_list_filename, 'w') as output_list_file:
+			for x in mind_pdbs:
+				output_list_file.write(x+'\n')
+		print("\nThis list was saved in {0}".format(output_list_filename))
+		exit(1)
+	else:
+		print("\nConsidering the following PDBs:")
+		print(structures_found_str+"\n")
 
 	interaction_filenames = set()
 	failed_pdbs = set()
@@ -86,7 +101,13 @@ def main_mindistance(options):
 		new_mind_pdbs.append(x)
 	mind_pdbs = new_mind_pdbs
 
+	interpolated_pdbs_string = "".join([x+", " for x in mind_pdbs])[:-2]
 	print("\nPDBs effectively interpolated:")
-	print("".join([x+", " for x in mind_pdbs])[:-2]+"\n")
+	if not interpolated_pdbs_string:
+		print("None. The algorithm will stop.")
+		exit(1)
+	else:
+		print(interpolated_pdbs_string+"\n")
+
 
 	mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pfam_filename)

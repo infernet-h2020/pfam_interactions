@@ -70,7 +70,7 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_fol
 						argmind = o
 				if argmind:
 					i += 1
-					print("{0}\t{1}\t{2:.5f}\t{3}".format(argmind[0], argmind[1], argmind[2], nl))
+					print("{0}\t{1}\t{2:.5f}\t{3}".format(os.path.basename(argmind[0]), argmind[1], argmind[2], nl))
 					out_file.write("{0}\t{1}\t{2:.5f}\t{3}\n".format(argmind[0], argmind[1], argmind[2], nl))
 					if i >= imax:
 						break
