@@ -287,6 +287,24 @@ This command will then take into account the first five structures listed above:
 python3 dca2pdb.py -pf1 PF00017 -pf2 PF00041 -dca ../examples/plmDCA_outputs/PF00017_PF00041_plmdca.txt -mind support_files/template_pdb_list_for_mindist.txt
 `
 
+To conclude this section, we assume the case the user would like to know which and how many structures
+the program will process, before actually starting the (time-consuming) interaction calculation.
+The command for this type of inquiry is
+
+`
+python3 dca2pdb.py -pf1 PF00017 -pf2 PF00041 -find_str
+`
+
+This will return an output like:
+
+```
+PDBs found to contain the queried pfam(s):
+3k2m, 3t04, 3uyo, 4je4, 4jeg, 4jmg, 4jmh, 5dc0, 5dc4, 5dc9, 5mtj, 5mtm, 5mtn
+```
+
+The same information will also be saved in a text file, ready to be submitted through the `-mind` argument 
+after the due modifications.
+
 ### Testing domain-domain interactions without the structure of the complex
 
 Ultimately, we want to use DCA as a domain-domain contact prediction method, and we are thus interested 
