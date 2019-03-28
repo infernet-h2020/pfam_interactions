@@ -19,7 +19,7 @@
 set sel [atomselect top "XXX"]
 set protein [atomselect top "protein"]
 set n [molinfo top get numframes]
-set output [open "SASA_output.dat" w]
+set output [open "YYY/SASA_output.dat" w]
 # sasa calculation loop
 for {set i 0} {$i < $n} {incr i} {
 	molinfo top set frame $i
@@ -29,6 +29,6 @@ for {set i 0} {$i < $n} {incr i} {
 }
 puts "\t \t progress: $n/$n"
 puts "Done."	
-puts "output file: SASA_output.dat"
+puts "output file: YYY/SASA_output.dat"
 close $output
 exit
