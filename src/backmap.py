@@ -1,6 +1,6 @@
 from support import *
 
-def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_filename, pfam_uniprot_stockholm_relpath, cache_folder, msa_type="uniprot", force_download=False):
+def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pfam_uniprot_stockholm_relpath, cache_folder, msa_type="uniprot", force_download=False):
 	def print_summary(pdb_dca_resids):
 		dejavu = set()
 		ie = []
@@ -48,6 +48,9 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 		print_summary(pdb_dca_resids)
 		print("")
 		return bundle
+
+	print("\tUniProt resIDs >> DCA resIDs\t", end='', flush=True)
+	t = time.time()
 	
 	# Conversion from UniProt to DCA resIDs
 	dca_uniprot_resids = {}	# UniProt to DCA resID map. dca_uniprot_resids[(Pfam_accession, UniProt_accession)] = DCA_UniProt_map
@@ -59,14 +62,14 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 		if (not os.path.exists(pfam_uniprot_stockholm_filename)) or force_download:
 			pfam_uniprot_stockholm_filename = download_pfam_files(pfam_acc, pfam_uniprot_stockholm_relpath, msa_type)	# If it must be downloaded
 		if not os.path.exists(pfam_uniprot_stockholm_filename):
-			print("ERROR: could not find Pfam MSA")
+			print("\nERROR: could not find Pfam MSA")
 			exit(1)
 		pfam_uniprot_stockholm_filename = pfam_uniprot_stockholm_relpath + pfam_acc + '_' + msa_type + '.stockholm'
 		# WARNING: This line depends on the type of Stockholm file
 		text = subprocess.run(['grep', '^{0}.'.format(uniprot_acc), pfam_uniprot_stockholm_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
 #		print("grep ^{0}. {1}".format(uniprot_acc, pfam_uniprot_stockholm_filename))
 		if not text[0]:
-			print("NOTICE: there are no sequences with the wanted uniprot access name. Request:")
+			print("\nNOTICE: there are no sequences with the wanted uniprot access name. Request:")
 			print('grep', '^{0}.'.format(uniprot_acc), pfam_uniprot_stockholm_filename)
 			continue
 		if not uniprot_acc in uniprot_restypes:
@@ -85,35 +88,49 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 				for k in uniprot_id2name:
 					uniprot_restypes[uniprot_acc][k] = uniprot_id2name[k]
 	
+	tf = time.time()
+	print(time.strftime("%H:%M:%S", time.gmtime(tf-t)))
+	print("\tPDB <<>> UniProt\t", end='', flush=True)
+	t = tf
+
 	# Conversion from PDB to UniProt and viceversa (WARNING: they are NOT 1-to-1 correspondances)
 	uniprot_pdb_resids = {}	# UniProt to PDB (each entry is a list) uniprot_pdb_resids[UniProt_accession][UniProt_resID] = [(PDB_chain, PDB_resID), ...]
 	pdb_uniprot_resids = {}	# PDB to UniProt (each entry is a list) pdb_uniprot_resids[(PDB_chain, PDB_resID)] = [(UniProt_accession, UniProt_resID), ...]
-	text = subprocess.run(['grep', '{0}'.format(pdbname.upper()), pdb_uniprot_res_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
-	for line in text:
-		if not line:
-			continue
-		fields = line.split()
-		if fields[6] == '1':
-			present = True
-		else:
-			present = False
-		if not present:
-			continue
-		chain = fields[1]
-#		if inch1 and chain != inch1 and chain != inch2:
-#			continue
-		pdb_resid = int(fields[4])
-		altloc = fields[5]
-		uniprot_acc = fields[8]
-		uniprot_resid = int(fields[10])
-		if uniprot_acc not in uniprot_pdb_resids:
-			uniprot_pdb_resids[uniprot_acc] = {}
-		if uniprot_resid not in uniprot_pdb_resids[uniprot_acc]:
-			uniprot_pdb_resids[uniprot_acc][uniprot_resid] = set()
-		uniprot_pdb_resids[uniprot_acc][uniprot_resid].add((chain, pdb_resid))
-		if (chain, pdb_resid) not in pdb_uniprot_resids:
-			pdb_uniprot_resids[(chain, pdb_resid)] = []
-		pdb_uniprot_resids[(chain, pdb_resid)].append((uniprot_acc, uniprot_resid))
+#	print('grep', '{0}'.format(pdbname.upper()), pdb_uniprot_res_filename)
+#	text = subprocess.run(['grep', '{0}'.format(pdbname.upper()), pdb_uniprot_res_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
+
+	indexed_pdb_uniprot_res_filename = indexed_pdb_uniprot_res_folder + pdbname + "_" + pdb_uniprot_res_filename
+	with open(indexed_pdb_uniprot_res_filename) as indexed_pdb_uniprot_res_file:
+		for line in indexed_pdb_uniprot_res_file:
+			if not line:
+				continue
+			fields = line.split()
+			if fields[6] == '1':
+				present = True
+			else:
+				present = False
+			if not present:
+				continue
+			chain = fields[1]
+#			if inch1 and chain != inch1 and chain != inch2:
+#				continue
+			pdb_resid = int(fields[4])
+			altloc = fields[5]
+			uniprot_acc = fields[8]
+			uniprot_resid = int(fields[10])
+			if uniprot_acc not in uniprot_pdb_resids:
+				uniprot_pdb_resids[uniprot_acc] = {}
+			if uniprot_resid not in uniprot_pdb_resids[uniprot_acc]:
+				uniprot_pdb_resids[uniprot_acc][uniprot_resid] = set()
+			uniprot_pdb_resids[uniprot_acc][uniprot_resid].add((chain, pdb_resid))
+			if (chain, pdb_resid) not in pdb_uniprot_resids:
+				pdb_uniprot_resids[(chain, pdb_resid)] = []
+			pdb_uniprot_resids[(chain, pdb_resid)].append((uniprot_acc, uniprot_resid))
+
+	tf = time.time()
+	print(time.strftime("%H:%M:%S", time.gmtime(tf-t)))
+	print("\tDCA <<>> PDB\t", end='', flush=True)
+	t = tf
 	
 	# Conversion DCA to PDB and viceversa
 	dca_pdb_resids = {}	# DCA to PDB. dca_pdb_resids[(Pfam_accession, UniProt_accession)] = [[[DCA_resid, PDB_resid], ...], ]
@@ -150,6 +167,9 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 							pdb_dca_resids[(c, ri)].append((pfam_acc + '_' + c + str(chain_multiplicity[pfam_acc][c]), dca_resid))
 			new_mainlist.append(new_convlist)
 		dca_pdb_resids[(pfam_acc, uniprot_acc)] = new_mainlist[:]
+
+	tf = time.time()
+	print(time.strftime("%H:%M:%S", time.gmtime(tf-t)))
 	
 	# List the residues with coordinates in each PDB chain
 	allowed_residues = {}

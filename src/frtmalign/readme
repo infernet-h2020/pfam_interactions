@@ -1,0 +1,24 @@
+## Instructions for compiling and running Fr-TM-align program (Version 1.0)
+##
+## One executable code is provided.
+
+1. The precompiled program is "frtmalign.exe".
+   This program is precompiled with static libraries. If there is any problem with
+   the execution of the program. Please inform us.
+
+  Report any bugs to: spandit3@mail.gatech.edu
+
+## To compile the program:
+
+2. run the make
+  ./make
+
+## To run the program. To see various options, execute the program with OR
+## without --help flag.
+
+3. To execute the program
+  ./frtmalign.exe 
+
+  OR 
+
+  ./frtmalign

@@ -30,3 +30,7 @@ else:
 			database_filename = line.strip()
 			print("\t{0}".format(database_filename))
 			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/database_files/{1}.gz -O {2}/{1}.gz >/dev/null 2>&1".format(pfam_version, database_filename, options['database_files_relpath']))
+
+if indexing:
+	os.mkdir(options['indexed_pdb_uniprot_res_folder'])
+	os.system("awk '{{print $0 >> \"{1}/\"$1\"_{0}\" }}' {0}".format(options['pdb_uniprot_res_filename'], options['indexed_pdb_uniprot_res_folder']))
