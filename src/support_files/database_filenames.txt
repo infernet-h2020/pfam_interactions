@@ -1,4 +1,4 @@
-pdb_pfamA_reg.txt
-pdb_residue_data.txt
-uniprot_reg_full.txt
+pdb_pfamA_reg.txt	database_files
+pdb_residue_data.txt	database_files
+uniprot_reg_full.txt	database_files
 pdbmap

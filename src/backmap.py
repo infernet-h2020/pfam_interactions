@@ -1,7 +1,7 @@
 from support import *
 
-def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pfam_uniprot_stockholm_relpath, cache_folder, msa_type="uniprot", force_download=False):
-	def print_summary(pdb_dca_resids):
+def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, msa_type="uniprot", force_download=False):
+	def print_summary(pdb_dca_resids, pdb_uniprot_resids):
 		dejavu = set()
 		ie = []
 		kprev = ('', '')
@@ -18,13 +18,34 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 	
 		if kprev[0]:
 			ie[-1].append(kprev)
+
+		backmap_table = []
 		for p, i, e in ie:
-			print(p+":", i[0], str(i[1])+"-"+str(e[1]))
+			up_str = ""
+			up = []
+			for ipur in range(len(pdb_uniprot_resids[(i[0], i[1])])):
+				if up_str:
+					up_str += " "
+				up_str += pdb_uniprot_resids[(i[0], i[1])][ipur][0] + "_" + str(pdb_uniprot_resids[(i[0], i[1])][ipur][1]) + "-" + str(pdb_uniprot_resids[(e[0], e[1])][ipur][1])
+				up.append((pdb_uniprot_resids[(i[0], i[1])][ipur][0], (pdb_uniprot_resids[(i[0], i[1])][ipur][1], pdb_uniprot_resids[(e[0], e[1])][ipur][1])))
+			print(p+":", i[0], str(i[1])+"-"+str(e[1]), up_str)
+			backmap_table.append([p, (i[0], (i[1], e[1])), tuple(up)])
+		return backmap_table
+
+	# Read index
+	pdb_uniprot_index = {}
+	with open(pdb_uniprot_res_index_filename) as index_file:
+		for line in index_file:
+			if not line.strip():
+				continue
+			fields = line.split()
+			pdb_uniprot_index[fields[0]] = (fields[1], fields[2])
 
 
 	print("Backmap: ")
 	# Retrieve Pfams in the wanted PDB, and associates UniProt accession names
 	pfam_in_pdb = []	# 
+#	print('grep {0} {1}'.format(pdbname.upper(), pdb_pfam_filename))
 	text = subprocess.run(['grep', '{0}'.format(pdbname.upper()), pdb_pfam_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
 	for line in text:
 		if not line:
@@ -44,8 +65,8 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 	pickle_filename = cache_folder + "." + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + ".pkl"
 	if os.path.exists(pickle_filename):
 		bundle = pickle.load(open(pickle_filename, 'rb'))
-		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues = bundle
-		print_summary(pdb_dca_resids)
+		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
+		backmap_table = print_summary(pdb_dca_resids, pdb_uniprot_resids)
 		print("")
 		return bundle
 
@@ -56,6 +77,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 	dca_uniprot_resids = {}	# UniProt to DCA resID map. dca_uniprot_resids[(Pfam_accession, UniProt_accession)] = DCA_UniProt_map
 	dca_model_length = {}	# DCA model length. dca_model_length[Pfam_accession] = DCA_length
 	uniprot_restypes = {}	# UniProt resID to residue types map. uniprot_restypes[UniProt_accession] = resID_resName_map
+	delete_uniprot_acc = set()
 	for pfam_acc, uniprot_acc in pfam_in_pdb:
 		# Download the Pfam alignment
 		pfam_uniprot_stockholm_filename = download_pfam_files(pfam_acc, pfam_uniprot_stockholm_relpath, msa_type, only_name=True)	# Only to get the correct name
@@ -71,6 +93,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 		if not text[0]:
 			print("\nNOTICE: there are no sequences with the wanted uniprot access name. Request:")
 			print('grep', '^{0}.'.format(uniprot_acc), pfam_uniprot_stockholm_filename)
+			delete_uniprot_acc.add(uniprot_acc)
 			continue
 		if not uniprot_acc in uniprot_restypes:
 			uniprot_restypes[uniprot_acc] = {}
@@ -87,7 +110,13 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 			else:
 				for k in uniprot_id2name:
 					uniprot_restypes[uniprot_acc][k] = uniprot_id2name[k]
-	
+
+	new_pfam_in_pdb = []
+	for pfam_acc, uniprot_acc in pfam_in_pdb:
+		if uniprot_acc not in delete_uniprot_acc:
+			new_pfam_in_pdb.append((pfam_acc, uniprot_acc))
+	pfam_in_pdb = new_pfam_in_pdb[:]
+
 	tf = time.time()
 	print(time.strftime("%H:%M:%S", time.gmtime(tf-t)))
 	print("\tPDB <<>> UniProt\t", end='', flush=True)
@@ -99,12 +128,21 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 #	print('grep', '{0}'.format(pdbname.upper()), pdb_uniprot_res_filename)
 #	text = subprocess.run(['grep', '{0}'.format(pdbname.upper()), pdb_uniprot_res_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
 
-	indexed_pdb_uniprot_res_filename = indexed_pdb_uniprot_res_folder + pdbname + "_" + pdb_uniprot_res_filename
+	parser = Bio.PDB.PDBParser(QUIET=True)
+	structure = parser.get_structure(pdbname, pdb_path)
+
+	valid_residues = {}
+	for chain in structure[0]:
+		valid_residues[chain.id] = [x.id[1] for x in chain]
+
+	indexed_pdb_uniprot_res_filename, ind = pdb_uniprot_index[pdbname.upper()]
 	with open(indexed_pdb_uniprot_res_filename) as indexed_pdb_uniprot_res_file:
-		for line in indexed_pdb_uniprot_res_file:
-			if not line:
+		for ln, line in enumerate(indexed_pdb_uniprot_res_file):
+			if not line or ln < int(ind)-1:
 				continue
 			fields = line.split()
+			if fields[0] != pdbname.upper():
+				continue
 			if fields[6] == '1':
 				present = True
 			else:
@@ -112,9 +150,13 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 			if not present:
 				continue
 			chain = fields[1]
+			if chain not in valid_residues:
+				continue
 #			if inch1 and chain != inch1 and chain != inch2:
 #				continue
 			pdb_resid = int(fields[4])
+			if pdb_resid not in valid_residues[chain]:
+				continue
 			altloc = fields[5]
 			uniprot_acc = fields[8]
 			uniprot_resid = int(fields[10])
@@ -181,8 +223,8 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_pfam_filename, pdb_uniprot_res_f
 		allowed_residues[chain].add(resid)
 
 #	print(pickle_filename)
-	pickle.dump((dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues), open(pickle_filename, 'wb'))
-	print_summary(pdb_dca_resids)	
+	backmap_table = print_summary(pdb_dca_resids, pdb_uniprot_resids)	
+	pickle.dump((dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table), open(pickle_filename, 'wb'))
 
 	print("")
-	return dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues 
+	return dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table 

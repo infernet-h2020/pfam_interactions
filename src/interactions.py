@@ -17,12 +17,14 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 		CA_distance = []
 		parser = Bio.PDB.PDBParser(QUIET=True)
 		structure = parser.get_structure(pdbname, pdb_path)
-		
+
 		for model in structure:
 			for chain1 in allowed_residues:
 				c1 = model[chain1]
 				for r1 in c1:
 					resid1 = r1.id[1]
+					if r1.id[2].strip():
+						continue
 					if resid1 not in allowed_residues[chain1]:
 						continue
 					residues_linear.append((chain1, resid1))
@@ -35,6 +37,8 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 							continue
 						for r2 in c2:
 							resid2 = r2.id[1]
+							if r2.id[2].strip():
+								continue
 							if resid2 not in allowed_residues[chain2]:
 								continue
 							if (chain1 == chain2 and resid1 == resid2) or (inch1 and ({chain1, chain2} != {inch1, inch2})):
@@ -60,9 +64,8 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 							distance.append(mindist)
 							sc_distance.append(mindist_sc)
 			break	# consider only first model
-		
 		N = len(residues_linear)
-		
+
 		distance = np.array(distance).reshape((N, N))
 		sc_distance = np.array(sc_distance).reshape((N, N))
 		CA_distance = np.array(CA_distance).reshape((N, N))

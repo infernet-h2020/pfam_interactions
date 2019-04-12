@@ -27,10 +27,23 @@ else:
 	print("Downloading files from Pfam:")
 	with open(database_filenames_filename) as database_filenames_file:
 		for line in database_filenames_file:
-			database_filename = line.strip()
+			if line.startswith("#"):
+				continue
+			fields = line.split()
+			database_filename = fields[0]
+			if len(fields) == 2:
+				database_folder = fields[1]
+			else:
+				database_folder = ""
 			print("\t{0}".format(database_filename))
-			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/database_files/{1}.gz -O {2}/{1}.gz >/dev/null 2>&1".format(pfam_version, database_filename, options['database_files_relpath']))
+			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/{2}/{1}.gz -O {3}/{1}.gz >/dev/null 2>&1".format(pfam_version, database_filename, database_folder, options['database_files_relpath']))
 
-if indexing:
+	os.system("{0}/decompression.sh {1} {2}".format(this_path, options['main'], pfam_version))
+
+if options['indexing']:
+	print("\nIndexing large files...\n")
 	os.mkdir(options['indexed_pdb_uniprot_res_folder'])
-	os.system("awk '{{print $0 >> \"{1}/\"$1\"_{0}\" }}' {0}".format(options['pdb_uniprot_res_filename'], options['indexed_pdb_uniprot_res_folder']))
+	text = subprocess.run(["awk 'BEGIN{{fname=\"\"}}{{if (a[$1]!=1) {{if (fname!=\"\") {{close(fname)}}; x=substr($1,1,2); if (b[x]!=1) {{n[x]=1; b[x]=1}}; fname = \"{2}/\" x \"_{1}\"; print $1, fname, n[x]; a[$1]=1}}; print $0 >> fname; n[x]++}}' {0}".format(options['pdb_uniprot_res_filename'], os.path.basename(options['pdb_uniprot_res_filename']), options['indexed_pdb_uniprot_res_folder'])], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+	with open(options['indexed_pdb_uniprot_res_index'], 'w') as index_file:
+		for line in text:
+			index_file.write(line + '\n')

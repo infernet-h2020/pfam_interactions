@@ -4,6 +4,44 @@ import interactions
 import mindistance
 from support import *
 
+
+def search_pfam_for_uniprot(pfam_uniprot_stockholm_relpath, pfam_acc, ann_uniprot_acc):
+	print(ann_uniprot_acc)
+	msa_type = "uniprot"
+	alphabet = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'L', 'K', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y', '-']
+	pfam_uniprot_stockholm_filename = pfam_uniprot_stockholm_relpath + pfam_acc + '_' + msa_type + '.stockholm'
+	text = subprocess.run(['grep', '^{0}.'.format(ann_uniprot_acc[0]), pfam_uniprot_stockholm_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
+	unpi, unpe = ann_uniprot_acc[1]
+	for line in text:
+		fields = line.split()
+		i, e = [int(x) for x in fields[0].split('/')[1].split('-')]
+		if i <= unpi and e >= unpe:
+			return "".join([x for x in fields[1] if x in alphabet])
+
+
+def calculate_hmm_seqID(seq1, seq2):
+#	print(seq1)
+#	print(seq2)
+	if len(seq1) != len(seq2):
+		print("ERROR: the two sequences do not have the same length")
+		exit(1)
+	if len(seq1)*len(seq2) == 0:
+		print("ERROR: one of the two sequences is void")
+		exit(1)
+
+	n = 0
+	hit = 0
+	for i in range(len(seq1)):
+		if seq1[i].upper() != seq1[i] or seq2[i].upper() != seq2[i]:
+			continue
+		if seq1[i] == seq2[i]:
+			if seq1[i] == '-' or seq1[i] == '.':
+				continue
+			hit += 1
+		n += 1
+	return(hit/n)
+	
+
 def main_mindistance(options):
 	mindist = options['min_dist']
 	inpfam = options['inpfam']
@@ -24,6 +62,7 @@ def main_mindistance(options):
 	only_intra = options['only_intra']
 	only_inter = options['only_inter']
 	find_str = options['find_structures']
+	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
 	check_architecture = True
 	inch1 = ''
 	inch2 = ''
@@ -38,8 +77,8 @@ def main_mindistance(options):
 		if inpfam:
 			self_inter = True
 			text = subprocess.run(["grep {0} {1} | awk '{{print substr($1, 1, length($1)-1)}}'".format(inpfam, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
-			if check_architecture:
-				print("grep {0} {1} | awk '$1==$2{{print $3}}'".format(inpfam, pfam_pfam_filename))
+			if check_architecture: 
+#				print("grep {0} {1} | awk '$1==$2{{print $3}}'".format(inpfam, pfam_pfam_filename))
 				textint = subprocess.run(["grep {0} {1} | awk '$1==$2{{print $3}}'".format(inpfam, pfam_pfam_filename)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
 				textint = set(textint)
 			for line in text:
@@ -51,7 +90,8 @@ def main_mindistance(options):
 						if pdbname not in mind_pdbs:
 							mind_pdbs.append(pdbname)
 					else:
-						print(pdbname, "removed")
+#						print(pdbname, "removed")
+						pass
 		else:
 			self_inter = False
 			text = subprocess.run(["grep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam1, pfam_pfam_filename, inpfam2)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
@@ -95,27 +135,96 @@ def main_mindistance(options):
 		print("\nConsidering the following PDBs:")
 		print(structures_found_str+"\n")
 
-	### METTERLO QUI E' UN CASINO, DEVI FARLO 
-#	if cluster:
-#		if inpfam:
-#			inpfams = [inpfams]
-#		else:
-#			inpfams = [inpfam1, inpfam2]
-#		seqID_d = {}
-#		seqID = np.ones((len(mind_pdbs), len(mind_pdbs)))
-#		for i, pdbname1 in enumerate(mind_pdbs):
-#			for j, pdbname2 in enumerate(mind_pdbs[i+1:]):
-#				seqs_pdb1 = get_Pfam_seq(inpfams, pdbname1)
-#				seqs_pdb2 = get_seq(pdbname2)
-#				matrix = matlist.blosum62
-#				alns = pairwise2.align.globalds(seq1, seq2, matrix, -2, -0.25)
-#				seqID[i][j] = min(calculate_asymm_seqid(alns[0]))	# Take the minimum between the two seqIDs relative to the first alignment
-#				seqID[j][i] = seqID[i][j]
 
+	failed_pdbs = set()
+	cluster = False
+#	cluster = True
+	if cluster and inpfam:
+		sequences = {}
+		maxi_backmap_table = []
+		uniprots = {}
+		for pdbname in mind_pdbs:#[:5]:	# DEBUG
+			pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
+			try:
+				pfam_in_pdb = matches.calculate_matches(pdbname, inpfam, inpfam1, inpfam2, pdb_pfam_filename)
+			except:
+				failed_pdbs.add(pdbname)
+				continue
+	
+			# Download PDB if needed
+			pdb_path = options['pdb_files_ext_path'] + pdbname.lower() + '.pdb'
+			if not os.path.exists(pdb_path):
+				if not os.path.exists(options['pdb_files_ext_path']):
+					print("ERROR: PDB path not found")
+					exit(1)
+				download_pdb(pdbname, options['pdb_files_ext_path'])
+			if not os.path.exists(pdb_path):
+				print("ERROR: PDB " + pdbname + " not found")
+				exit(1)
+
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, msa_type=msa_type, force_download=force_download)
+			for line in backmap_table:
+				unique_pfam_acc, pdb_corresp, unp_corresp = line
+				pfam_acc = unique_pfam_acc.split('_')[0]
+				if pfam_acc not in uniprots:
+					uniprots[pfam_acc] = []
+				if unp_corresp not in uniprots[pfam_acc]:
+					uniprots[pfam_acc].append(unp_corresp)
+				maxi_backmap_table.append([pdbname, unique_pfam_acc, pdb_corresp, unp_corresp])
+
+		new_mind_pdbs = []
+		for pdbname in mind_pdbs:
+			if pdbname not in failed_pdbs:
+				new_mind_pdbs.append(pdbname)
+		mind_pdbs = new_mind_pdbs[:]
+
+		print("HERE", uniprots)		
+
+
+		seqs = {}
+		pfam_set = {inpfam}     # MODIFY THIS FOR 2 PFAMS
+		for pfam_acc in pfam_set:
+			for unpi1, ann_uniprot_acc1 in enumerate(uniprots[pfam_acc]):
+				seqs[(pfam_acc, ann_uniprot_acc1[0])] = search_pfam_for_uniprot(pfam_uniprot_stockholm_relpath, pfam_acc, ann_uniprot_acc1[0])
+				print(pfam_acc, ann_uniprot_acc1[0], seqs[(pfam_acc, ann_uniprot_acc1[0])])
+
+		for pfam_acc in pfam_set:
+			hmm_seqID_mx = []
+			for unpi1, ann_uniprot_acc1 in enumerate(uniprots[pfam_acc]):
+				hmm_seqID_mx.append([])
+				seq1 = seqs[(pfam_acc, ann_uniprot_acc1[0])]
+				for unpi2, ann_uniprot_acc2 in enumerate(uniprots[pfam_acc]):
+					if ann_uniprot_acc1 == ann_uniprot_acc2:
+						hmm_seqID_mx[unpi1].append(1)
+						continue
+					seq2 = seqs[(pfam_acc, ann_uniprot_acc2[0])]
+					hmm_seqID_mx[unpi1].append(calculate_hmm_seqID(seq1, seq2))
+
+			N = len(uniprots[pfam_acc])
+			hmm_seqIDs = np.ones((N, N))
+			print(hmm_seqID_mx)
+			for i in range(N):
+				for j in range(N):
+					print(i,j)
+					hmm_seqIDs[i,j] = hmm_seqID_mx[i][j]
+
+			hmm_seqIDs_labels = intrinsic_dimension_clustering(hmm_seqIDs)
+
+#			dbscan(hmm_seqIDs)
+#			exit(1)
+		
+#		for pdbname1 in mind_pdbs:
+#			for pdbname2 in mind_pdbs:
+#				for uniprot_acc1 in maxi_uniprot_pdb_resids[pdbname1]:
+#					for uniprot_acc2 in maxi_uniprot_pdb_resids[pdbname2]:
+							
+			
+	
 
 	interaction_filenames = set()
-	failed_pdbs = set()
 	for pdbname in mind_pdbs:
+#		if cluster and pdbname in failed_pdbs:
+#			continue
 		print("\nPDB: ", pdbname, '-'*150)
 		pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
 		try:
@@ -135,9 +244,7 @@ def main_mindistance(options):
 			print("ERROR: PDB " + pdbname + " not found")
 			exit(1)
 
-		print(pfam_in_pdb)
-
-		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pfam_uniprot_stockholm_relpath, cache_folder, msa_type=msa_type, force_download=force_download)
+		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, msa_type=msa_type, force_download=force_download)
 
 		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter)	
 		interaction_filenames |= int_filenames	
@@ -159,6 +266,6 @@ def main_mindistance(options):
 
 
 	if inpfam:
-		mindistance.mindistance(mind_pdbs, inpfam, inpfam, only_intra, only_inter, results_folder, dca_filename, pfam_pfam_filename)
+		mindistance.mindistance(mind_pdbs, inpfam, inpfam, only_intra, only_inter, results_folder, dca_filename, pfam_pfam_filename, with_offset=False)
 	else:
 		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pfam_filename)

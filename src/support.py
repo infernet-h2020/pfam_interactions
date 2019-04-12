@@ -181,16 +181,20 @@ def download_pfam_files(pfam_acc, folder, msa_type, only_name=False, version=Non
 	else:	# Assumes you need the latest version
 		if msa_type == 'hmm':
 			if not only_name:
-				os.system("wget https://pfam.xfam.org/family/{0}/hmm -O {1}/{0}.hmm &> /dev/null".format(pfam_acc, folder))
+				os.system("wget https://pfam.xfam.org/family/{0}/hmm -O {1}/{0}.hmm > /dev/null 2>&1".format(pfam_acc, folder))
 			return folder + "/{0}.hmm".format(pfam_acc)
 		else:
 			if not only_name:
-				os.system("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}.stockholm &> /dev/null".format(pfam_acc, msa_type, folder))
+				print("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder))
+				os.system("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}.stockholm > /dev/null 2>&1".format(pfam_acc, msa_type, folder))
+				if os.path.exists("{2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder)):
+					print("ERROR: Could not download the file https://pfam.xfam.org/family/{0}/alignment/{1}\nThe algorithm cannot proceed. Please download it and change its path in {2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder))
+					exit(1)
 			return folder + "/{0}_{1}.stockholm".format(pfam_acc, msa_type)
 
 
 def download_pdb(pdbname, output_folder):
-	os.system("wget https://files.rcsb.org/download/{0}.pdb -O {1}/{2}.pdb &>/dev/null".format(pdbname.upper(), output_folder, pdbname.lower()))
+	os.system("wget https://files.rcsb.org/download/{0}.pdb -O {1}/{2}.pdb >/dev/null 2>&1".format(pdbname.upper(), output_folder, pdbname.lower()))
 
 
 def calculate_asymm_seqid(alignment):
@@ -216,6 +220,16 @@ def calculate_asymm_seqid(alignment):
 
 	return seqID1, seqID2
 
+
+def instrinsic_dimension_clustering(X):
+	pass
+	# Call intrinsic dimension
+
+	# Call iterative k-means
+
+	# Take the one that maximizes the silhouette score and return its labels
+
+
 def dbscan(X):
 	# #############################################################################
 	# Compute DBSCAN
@@ -230,15 +244,15 @@ def dbscan(X):
 	
 	print('Estimated number of clusters: %d' % n_clusters_)
 	print('Estimated number of noise points: %d' % n_noise_)
-	print("Homogeneity: %0.3f" % metrics.homogeneity_score(labels_true, labels))
-	print("Completeness: %0.3f" % metrics.completeness_score(labels_true, labels))
-	print("V-measure: %0.3f" % metrics.v_measure_score(labels_true, labels))
-	print("Adjusted Rand Index: %0.3f"
-	      % metrics.adjusted_rand_score(labels_true, labels))
-	print("Adjusted Mutual Information: %0.3f"
-	      % metrics.adjusted_mutual_info_score(labels_true, labels))
-	print("Silhouette Coefficient: %0.3f"
-	      % metrics.silhouette_score(X, labels))
+#	print("Homogeneity: %0.3f" % metrics.homogeneity_score(labels_true, labels))
+#	print("Completeness: %0.3f" % metrics.completeness_score(labels_true, labels))
+#	print("V-measure: %0.3f" % metrics.v_measure_score(labels_true, labels))
+#	print("Adjusted Rand Index: %0.3f"
+#	      % metrics.adjusted_rand_score(labels_true, labels))
+#	print("Adjusted Mutual Information: %0.3f"
+#	      % metrics.adjusted_mutual_info_score(labels_true, labels))
+#	print("Silhouette Coefficient: %0.3f"
+#	      % metrics.silhouette_score(X, labels))
 	
 	# #############################################################################
 	# Plot result
@@ -263,4 +277,10 @@ def dbscan(X):
 	             markeredgecolor='k', markersize=6)
 	
 	plt.title('Estimated number of clusters: %d' % n_clusters_)
-	plt.show()
+	plt.savefig("fig1.png")
+
+	with open("m1.txt", 'w') as m_file:
+		N = len(X[0])
+		for i in range(N):
+			for j in range(N):
+				m_file.write("{0} {1} {2}\n".format(i, j, X[i,j]))

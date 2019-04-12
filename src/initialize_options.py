@@ -21,6 +21,7 @@ def initialize_options(version):
 	options['pdb_pfam_filename']              = options['database_files_relpath'] + "pdb_pfamA_reg.txt"          # Register cennecting PDB and Pfam information
 	options['pdb_uniprot_res_filename']       = options['database_files_relpath'] + "pdb_residue_data.txt"       # Register with residue-by-residue details
 	options['indexed_pdb_uniprot_res_folder'] = options['database_files_relpath'] + "pdb_residue_data/"
+	options['indexed_pdb_uniprot_res_index']  = options['database_files_relpath'] + ".pdb_residue_data_index.txt"
 	options['pfam_uniprot_filename']          = options['database_files_relpath'] + "uniprot_reg_full.txt"       # Register connecting UniProt and Pfam information
 	options['pfam_pdbmap']                    = options['database_files_relpath'] + "pdbmap"
 	options['interaction_database']           = options['db']                     + "interaction_database/"
@@ -31,6 +32,8 @@ def initialize_options(version):
 	options['examples']                       = options['main']                   + 'examples/'
 	options['results_folder']                 = options['examples']               + "results/"                   # Folder where results are put
 
+	# Hardcoded options
+	options['indexing']                       = True
 	for p in [options['external_resources'], options['cache'], options['pdb_files_ext_path'], options['pfam_uniprot_stockholm_relpath'], options['results_folder']]:
 		if not os.path.exists(p):
 			os.mkdir(p)

@@ -27,6 +27,7 @@ def main_parser():
 	parser.add_argument('-v', '--pfam_version', nargs='?', default='32')
 	parser.add_argument('-out', '--output_path', nargs='?', default='None')
 	parser.add_argument('-find_str', '--find_structures', action='store_const', const='True', default='False')
+	parser.add_argument('-no_indexing', '--no_indexing', action='store_const', const='True', default='False')
 
 	# Default values for optional arguments
 	parser.set_defaults(pdbname = 'None')
