@@ -37,4 +37,4 @@ pip install -r python3_requirements.txt >/dev/null 2>&1
 # Download Pfam version and unzip files
 python3 ${DIR}/src/change_pfam_version.py ${version}
 
-echo "Installation completed!"
+echo "Installation complete!"

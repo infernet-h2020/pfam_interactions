@@ -1,6 +1,6 @@
 from support import *
 
-def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, msa_type="uniprot", force_download=False):
+def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type="uniprot", force_download=False):
 	def print_summary(pdb_dca_resids, pdb_uniprot_resids):
 		dejavu = set()
 		ie = []
@@ -80,13 +80,12 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 	delete_uniprot_acc = set()
 	for pfam_acc, uniprot_acc in pfam_in_pdb:
 		# Download the Pfam alignment
-		pfam_uniprot_stockholm_filename = download_pfam_files(pfam_acc, pfam_uniprot_stockholm_relpath, msa_type, only_name=True)	# Only to get the correct name
-		if (not os.path.exists(pfam_uniprot_stockholm_filename)) or force_download:
-			pfam_uniprot_stockholm_filename = download_pfam_files(pfam_acc, pfam_uniprot_stockholm_relpath, msa_type)	# If it must be downloaded
+		pfam_uniprot_stockholm_filename = download_pfam_files(pfam_acc, pfam_uniprot_stockholm_relpath, msa_type, version, only_name=True)	# Only to get the correct name
+#		if (not os.path.exists(pfam_uniprot_stockholm_filename)) or force_download:
+#			pfam_uniprot_stockholm_filename = download_pfam_files(pfam_acc, pfam_uniprot_stockholm_relpath, msa_type, version)	# If it must be downloaded
 		if not os.path.exists(pfam_uniprot_stockholm_filename):
 			print("\nERROR: could not find Pfam MSA")
 			exit(1)
-		pfam_uniprot_stockholm_filename = pfam_uniprot_stockholm_relpath + pfam_acc + '_' + msa_type + '.stockholm'
 		# WARNING: This line depends on the type of Stockholm file
 		text = subprocess.run(['grep', '^{0}.'.format(uniprot_acc), pfam_uniprot_stockholm_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
 #		print("grep ^{0}. {1}".format(uniprot_acc, pfam_uniprot_stockholm_filename))

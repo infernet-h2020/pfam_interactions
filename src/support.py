@@ -174,27 +174,27 @@ def convindex_uniprot_dca__format_stockholm(line):
 	return conversion, uniprot_id2name, dca_resid
 
 
-def download_pfam_files(pfam_acc, folder, msa_type, only_name=False, version=None):
+def download_pfam_files(pfam_acc, folder, msa_type, version, only_name=False):
 	if version:
 		print("THE version OPTION IS NOT YET IMPLEMENTED")
 		exit(1)
 	else:	# Assumes you need the latest version
 		if msa_type == 'hmm':
 			if not only_name:
-				os.system("wget https://pfam.xfam.org/family/{0}/hmm -O {1}/{0}.hmm > /dev/null 2>&1".format(pfam_acc, folder))
+				subprocess.run(["wget", "https://pfam.xfam.org/family/{0}/hmm".format(pfam_acc), "-O", "{1}/{0}.hmm".format(pfam_acc, folder)], stdout=open("/dev/null", 'w'))
 			return folder + "/{0}.hmm".format(pfam_acc)
 		else:
 			if not only_name:
 				print("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder))
-				os.system("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}.stockholm > /dev/null 2>&1".format(pfam_acc, msa_type, folder))
+				subprocess.run(["wget", "https://pfam.xfam.org/family/{0}/alignment/{1}".format(pfam_acc, msa_type), "-O", "{2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder)], stdout=open("/dev/null", 'w'))
 				if os.path.exists("{2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder)):
 					print("ERROR: Could not download the file https://pfam.xfam.org/family/{0}/alignment/{1}\nThe algorithm cannot proceed. Please download it and change its path in {2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder))
 					exit(1)
-			return folder + "/{0}_{1}.stockholm".format(pfam_acc, msa_type)
+			return folder + "/{0}_{1}_v{2}.stockholm".format(pfam_acc, msa_type, version)
 
 
 def download_pdb(pdbname, output_folder):
-	os.system("wget https://files.rcsb.org/download/{0}.pdb -O {1}/{2}.pdb >/dev/null 2>&1".format(pdbname.upper(), output_folder, pdbname.lower()))
+	subprocess.run(["wget", "https://files.rcsb.org/download/{0}.pdb".format(pdbname.upper()), "-O", "{0}/{1}.pdb".format(output_folder, pdbname.lower())], stdout=open("/dev/null", 'w'))
 
 
 def calculate_asymm_seqid(alignment):
