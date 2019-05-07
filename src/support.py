@@ -1,5 +1,6 @@
 import os
 import sys
+import gzip
 import time
 import subprocess
 import argparse

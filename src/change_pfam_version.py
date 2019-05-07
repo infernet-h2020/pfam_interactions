@@ -36,19 +36,22 @@ else:
 			else:
 				database_folder = ""
 			print("\t{0}".format(database_filename))
-			os.system("wget ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/{2}/{1}.gz -O {3}/{1}.gz >/dev/null 2>&1".format(pfam_version, database_filename, database_folder, options['database_files_relpath']))
+			subprocess.run(["wget", "ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/{2}/{1}.gz".format(pfam_version, database_filename, database_folder), "-O", "{1}/{0}.gz".format(database_filename, options['database_files_relpath']), stdout=open("/dev/null", "w"), stderr=open("/dev/null", "w"))
 
-	os.system("{0}/decompression.sh {1} {2}".format(this_path, options['main'], pfam_version))
+#	subprocess.run(["{0}/decompression.sh".format(this_path), options['main'], pfam_version], stdout=open("/dev/null", "w"), stderr=open("/dev/null", "w"))
 
 if options['indexing']:
 	print("\nIndexing large files (this might take a while...\n")
-	os.mkdir(options['indexed_pdb_uniprot_res_folder'])
-	text = subprocess.run(["awk 'BEGIN{{fname=\"\"}}{{if (a[$1]!=1) {{if (fname!=\"\") {{close(fname)}}; x=substr($1,1,2); if (b[x]!=1) {{n[x]=1; b[x]=1}}; fname = \"{2}/\" x \"_{1}\"; print $1, fname, n[x]; a[$1]=1}}; print $0 >> fname; n[x]++}}' {0}".format(options['pdb_uniprot_res_filename'], os.path.basename(options['pdb_uniprot_res_filename']), options['indexed_pdb_uniprot_res_folder'])], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+	if not os.path.exists(options['indexed_pdb_uniprot_res_folder']):
+		os.mkdir(options['indexed_pdb_uniprot_res_folder'])
+
+	text = subprocess.run(["zcat {0} | awk 'BEGIN{{fname=\"\"}}{{if (a[$1]!=1) {{if (fname!=\"\") {{close(fname)}}; x=substr($1,1,2); if (b[x]!=1) {{n[x]=1; b[x]=1}}; fname = \"{2}/\" x \"_{1}\"; print $1, fname, n[x]; a[$1]=1}}; print $0 >> fname; n[x]++}}'".format(options['pdb_uniprot_res_filename'], os.path.basename(options['pdb_uniprot_res_filename']), options['indexed_pdb_uniprot_res_folder'])], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+
 	with open(options['indexed_pdb_uniprot_res_index'], 'w') as index_file:
 		for line in text:
 			index_file.write(line + '\n')
 
-	with open(options['uniprot_stockholm_aln']) as aln_file:
+	with gzip.open(options['uniprot_stockholm_aln']) as aln_file:
 		transcript = ""
 		for line in aln_file:
 			if not line:
@@ -57,8 +60,10 @@ if options['indexing']:
 			if line.startswith("#=GF AC"):
 				fields = line.split()
 				pfam_acc = fields[2].split(".")[0]
-				current_filename = options[''] + current_filename + '_uniprot_v{0}.stockholm'.format(pfam_version)
+				current_filename = options['uniprot_stockholm_aln'] + pfam_acc + '_uniprot_v{0}.stockholm'.format(pfam_version)
 			if line.startswith("//"):
 				with open(current_filename, 'w') as out_file:
 					out_file.write(transcript)
+				zipped_filename = current_filename + ".gz"
+				subprocess.run(["gzip {0}".format(current_filename)])
 	os.remove(options['uniprot_stockholm_aln'])

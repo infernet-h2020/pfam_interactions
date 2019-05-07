@@ -46,7 +46,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 	# Retrieve Pfams in the wanted PDB, and associates UniProt accession names
 	pfam_in_pdb = []	# 
 #	print('grep {0} {1}'.format(pdbname.upper(), pdb_pfam_filename))
-	text = subprocess.run(['grep', '{0}'.format(pdbname.upper()), pdb_pfam_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
+	text = subprocess.run(['zgrep', '{0}'.format(pdbname.upper()), pdb_pfam_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
 	for line in text:
 		if not line:
 			continue
