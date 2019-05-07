@@ -84,6 +84,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 #		if (not os.path.exists(pfam_uniprot_stockholm_filename)) or force_download:
 #			pfam_uniprot_stockholm_filename = download_pfam_files(pfam_acc, pfam_uniprot_stockholm_relpath, msa_type, version)	# If it must be downloaded
 		if not os.path.exists(pfam_uniprot_stockholm_filename):
+			print(pfam_uniprot_stockholm_filename)
 			print("\nERROR: could not find Pfam MSA")
 			exit(1)
 		# WARNING: This line depends on the type of Stockholm file

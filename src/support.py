@@ -175,7 +175,8 @@ def convindex_uniprot_dca__format_stockholm(line):
 
 
 def download_pfam_files(pfam_acc, folder, msa_type, version, only_name=False):
-	if version:
+	if version != 32:
+		print(version)
 		print("THE version OPTION IS NOT YET IMPLEMENTED")
 		exit(1)
 	else:	# Assumes you need the latest version
@@ -184,10 +185,11 @@ def download_pfam_files(pfam_acc, folder, msa_type, version, only_name=False):
 				subprocess.run(["wget", "https://pfam.xfam.org/family/{0}/hmm".format(pfam_acc), "-O", "{1}/{0}.hmm".format(pfam_acc, folder)], stdout=open("/dev/null", 'w'))
 			return folder + "/{0}.hmm".format(pfam_acc)
 		else:
+			print("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version), only_name)
 			if not only_name:
-				print("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder))
-				subprocess.run(["wget", "https://pfam.xfam.org/family/{0}/alignment/{1}".format(pfam_acc, msa_type), "-O", "{2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder)], stdout=open("/dev/null", 'w'))
-				if os.path.exists("{2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder)):
+				print("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version))
+				subprocess.run(["wget", "https://pfam.xfam.org/family/{0}/alignment/{1}".format(pfam_acc, msa_type), "-O", "{2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version)], stdout=open("/dev/null", 'w'))
+				if os.path.exists("{2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version)):
 					print("ERROR: Could not download the file https://pfam.xfam.org/family/{0}/alignment/{1}\nThe algorithm cannot proceed. Please download it and change its path in {2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder))
 					exit(1)
 			return folder + "/{0}_{1}_v{2}.stockholm".format(pfam_acc, msa_type, version)

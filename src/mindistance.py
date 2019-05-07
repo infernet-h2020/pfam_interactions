@@ -22,7 +22,7 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_fol
 	filenames_list = []
 	for pair in pairs:
 		fname = results_folder + "/{0}_{1}_{2}_{3}*_{4}*.txt".format(inpfam1, inpfam2, pair[0].lower(), pair[1], pair[2])
-		text = subprocess.run(["ls {0} 2>/dev/null".format(fname)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+		text = subprocess.run(["ls", fname], stderr=open("/dev/null", 'w'), stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
 		for line in text:
 			if not line:
 				continue
