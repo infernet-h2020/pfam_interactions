@@ -1,4 +1,6 @@
 #!/bin/python3
+import sys, os
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 import initialize_options
 import main_accessibility

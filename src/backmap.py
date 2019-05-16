@@ -1,20 +1,25 @@
 from support import *
 
 def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type="uniprot", force_download=False):
-	def print_summary(pdb_dca_resids, pdb_uniprot_resids):
+	def print_summary(pdb_dca_resids, pdb_uniprot_resids, backmap_filename):
 		dejavu = set()
 		ie = []
 		kprev = ('', '')
-		for k in sorted(list(pdb_dca_resids.keys())):
-			c, ri = k
-			prv = ''
-#			print(k, pdb_dca_resids[k])
-			if pdb_dca_resids[k][0][0] not in dejavu:
-				if kprev[0]:
-					ie[-1].append(kprev)
-				ie.append([pdb_dca_resids[k][0][0], (c, ri)])
-				dejavu.add(pdb_dca_resids[k][0][0])
-			kprev = k
+
+		with open(backmap_filename, 'w') as bkmp_file:
+			for k in sorted(list(pdb_dca_resids.keys())):
+				c, ri = k
+				prv = ''
+	
+				for inst in pdb_dca_resids[k]:
+					bkmp_file.write("{0}\t{1:5d}\t{2}\t{3:5d}\n".format(c, ri, inst[0], inst[1]))
+	
+				if pdb_dca_resids[k][0][0] not in dejavu:
+					if kprev[0]:
+						ie[-1].append(kprev)
+					ie.append([pdb_dca_resids[k][0][0], (c, ri)])
+					dejavu.add(pdb_dca_resids[k][0][0])
+				kprev = k
 	
 		if kprev[0]:
 			ie[-1].append(kprev)
@@ -30,6 +35,8 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 				up.append((pdb_uniprot_resids[(i[0], i[1])][ipur][0], (pdb_uniprot_resids[(i[0], i[1])][ipur][1], pdb_uniprot_resids[(e[0], e[1])][ipur][1])))
 			print(p+":", i[0], str(i[1])+"-"+str(e[1]), up_str)
 			backmap_table.append([p, (i[0], (i[1], e[1])), tuple(up)])
+
+		print("Find the complete backmapping in {0}".format(backmap_filename))
 		return backmap_table
 
 	# Read index
@@ -63,10 +70,11 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 #	print("PFAM IN PDB", pfam_in_pdb)
 
 	pickle_filename = cache_folder + "." + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + ".pkl"
+	backmap_filename = cache_folder + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + ".txt"
 	if os.path.exists(pickle_filename):
 		bundle = pickle.load(open(pickle_filename, 'rb'))
 		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
-		backmap_table = print_summary(pdb_dca_resids, pdb_uniprot_resids)
+		backmap_table = print_summary(pdb_dca_resids, pdb_uniprot_resids, backmap_filename)
 		print("")
 		return bundle
 
@@ -81,6 +89,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 	for pfam_acc, uniprot_acc in pfam_in_pdb:
 		# Download the Pfam alignment
 		pfam_uniprot_stockholm_filename = download_pfam_files(pfam_acc, pfam_uniprot_stockholm_relpath, msa_type, version, only_name=True)	# Only to get the correct name
+
 #		if (not os.path.exists(pfam_uniprot_stockholm_filename)) or force_download:
 #			pfam_uniprot_stockholm_filename = download_pfam_files(pfam_acc, pfam_uniprot_stockholm_relpath, msa_type, version)	# If it must be downloaded
 		if not os.path.exists(pfam_uniprot_stockholm_filename):
@@ -88,11 +97,11 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 			print("\nERROR: could not find Pfam MSA")
 			exit(1)
 		# WARNING: This line depends on the type of Stockholm file
-		text = subprocess.run(['grep', '^{0}.'.format(uniprot_acc), pfam_uniprot_stockholm_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
+		text = subprocess.run(['zgrep', '^{0}.'.format(uniprot_acc), pfam_uniprot_stockholm_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
 #		print("grep ^{0}. {1}".format(uniprot_acc, pfam_uniprot_stockholm_filename))
 		if not text[0]:
 			print("\nNOTICE: there are no sequences with the wanted uniprot access name. Request:")
-			print('grep', '^{0}.'.format(uniprot_acc), pfam_uniprot_stockholm_filename)
+			print('zgrep', '^{0}.'.format(uniprot_acc), pfam_uniprot_stockholm_filename)
 			delete_uniprot_acc.add(uniprot_acc)
 			continue
 		if not uniprot_acc in uniprot_restypes:
@@ -207,7 +216,8 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 						el = (pfam_acc + '_' + c + str(chain_multiplicity[pfam_acc][c]), dca_resid)
 						if el not in pdb_dca_resids[(c, ri)]:
 							pdb_dca_resids[(c, ri)].append((pfam_acc + '_' + c + str(chain_multiplicity[pfam_acc][c]), dca_resid))
-			new_mainlist.append(new_convlist)
+			if new_convlist:
+				new_mainlist.append(new_convlist)
 		dca_pdb_resids[(pfam_acc, uniprot_acc)] = new_mainlist[:]
 
 	tf = time.time()
@@ -223,7 +233,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 		allowed_residues[chain].add(resid)
 
 #	print(pickle_filename)
-	backmap_table = print_summary(pdb_dca_resids, pdb_uniprot_resids)	
+	backmap_table = print_summary(pdb_dca_resids, pdb_uniprot_resids, backmap_filename)	
 	pickle.dump((dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table), open(pickle_filename, 'wb'))
 
 	print("")

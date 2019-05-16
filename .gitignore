@@ -3,3 +3,4 @@ _*
 db/external_resources/
 db/interaction_database/*.txt
 examples/results/
+examples/DDI_test/

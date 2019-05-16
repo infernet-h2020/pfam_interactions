@@ -16,10 +16,10 @@
 ###############################################################
 
 # selection
-set sel [atomselect top "chain A and resid 882"]
+set sel [atomselect top "chain A and resid 454"]
 set protein [atomselect top "protein"]
 set n [molinfo top get numframes]
-set output [open "SASA_output.dat" w]
+set output [open "/Volumes/C/Work/projects/test_env/pfam_interactions/src/../examples/results//SASA_output.dat" w]
 # sasa calculation loop
 for {set i 0} {$i < $n} {incr i} {
 	molinfo top set frame $i
@@ -29,6 +29,6 @@ for {set i 0} {$i < $n} {incr i} {
 }
 puts "\t \t progress: $n/$n"
 puts "Done."	
-puts "output file: SASA_output.dat"
+puts "output file: /Volumes/C/Work/projects/test_env/pfam_interactions/src/../examples/results//SASA_output.dat"
 close $output
 exit

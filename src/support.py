@@ -2,6 +2,8 @@ import os
 import sys
 import gzip
 import time
+import codecs
+import datetime
 import subprocess
 import argparse
 import pickle
@@ -11,6 +13,66 @@ from sklearn import metrics
 import matplotlib.pyplot as plt
 from Bio.SubsMat import MatrixInfo as matlist
 import numpy as np
+
+def from3to1(resname, include_MSEs=False):
+	f3t1 = {'ALA' : 'A',
+	        'ARG' : 'R',
+	        'ASN' : 'N',
+	        'ASP' : 'D',
+	        'CYS' : 'C',
+	        'GLN' : 'Q',
+	        'GLU' : 'E',
+	        'GLY' : 'G',
+	        'HIS' : 'H',
+	        'ILE' : 'I',
+	        'LEU' : 'L',
+	        'LYS' : 'K',
+	        'MET' : 'M',
+	        'PHE' : 'F',
+	        'PRO' : 'P',
+	        'SER' : 'S',
+	        'THR' : 'T',
+	        'TRP' : 'W',
+	        'TYR' : 'Y',
+	        'VAL' : 'V'}
+
+	if resname in list(f3t1.keys()):
+		return f3t1[resname]
+	elif include_MSEs and resname == 'MSE':
+		return 'M'
+	else:
+		return 'X'
+
+def query_yes_no(question, default="yes"):
+	"""Ask a yes/no question via input() and return their answer.
+
+	"question" is a string that is presented to the user.
+	"default" is the presumed answer if the user just hits <Enter>.
+	It must be "yes" (the default), "no" or None (meaning
+	an answer is required of the user).
+
+	The "answer" return value is True for "yes" or False for "no".
+	"""
+	valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
+	if default is None:
+		prompt = " [y/n] "
+	elif default == "yes":
+		prompt = " [Y/n] "
+	elif default == "no":
+		prompt = " [y/N] "
+	else:
+		raise ValueError("invalid default answer: '%s'" % default)
+
+	while True:
+		sys.stdout.write(question + prompt)
+		choice = input().lower()
+		if default is not None and choice == '':
+			return valid[default]
+		elif choice in valid:
+			return valid[choice]
+		else:
+			sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
+
 
 def string_is_float(s):
 	if not type(s) == str:
@@ -172,10 +234,11 @@ def convindex_uniprot_dca__format_stockholm(line):
 			uniprot_resid += 1
 
 
-	return conversion, uniprot_id2name, dca_resid
+	return conversion, uniprot_id2name, dca_resid-1
 
 
 def download_pfam_files(pfam_acc, folder, msa_type, version, only_name=False):
+	folder = folder + pfam_acc[:4] + '/'
 	if version != 32:
 		print(version)
 		print("THE version OPTION IS NOT YET IMPLEMENTED")
@@ -193,11 +256,11 @@ def download_pfam_files(pfam_acc, folder, msa_type, version, only_name=False):
 				if os.path.exists("{2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version)):
 					print("ERROR: Could not download the file https://pfam.xfam.org/family/{0}/alignment/{1}\nThe algorithm cannot proceed. Please download it and change its path in {2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder))
 					exit(1)
-			return folder + "/{0}_{1}_v{2}.stockholm".format(pfam_acc, msa_type, version)
+			return folder + "/{0}_{1}_v{2}.stockholm.gz".format(pfam_acc, msa_type, version)
 
 
 def download_pdb(pdbname, output_folder):
-	subprocess.run(["wget", "https://files.rcsb.org/download/{0}.pdb".format(pdbname.upper()), "-O", "{0}/{1}.pdb".format(output_folder, pdbname.lower())], stdout=open("/dev/null", 'w'))
+	subprocess.run(["wget", "https://files.rcsb.org/download/{0}.pdb".format(pdbname.upper()), "-O", "{0}/{1}.pdb".format(output_folder, pdbname.lower())], stdout=open("/dev/null", 'w'), stderr=open("/dev/null", 'w'))
 
 
 def calculate_asymm_seqid(alignment):

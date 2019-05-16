@@ -109,11 +109,14 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 					interactions[(pfam_acc1, pfam_acc2)][(cmult1, cmult2)][dca_i1-1][dca_i2-1] = d
 					sc_interactions[(pfam_acc1, pfam_acc2)][(cmult1, cmult2)][dca_i1-1][dca_i2-1] = dSC
 					CA_interactions[(pfam_acc1, pfam_acc2)][(cmult1, cmult2)][dca_i1-1][dca_i2-1] = dCA
+					print(d, dSC, dCA)
 					ausilia[(pfam_acc1, pfam_acc2)][(cmult1, cmult2)][dca_i1-1][dca_i2-1] = (c1, r1, c2, r2)
 
 	tf = time.time()
 	print(time.strftime("%H:%M:%S", time.gmtime(tf-t)))
 	t = tf
+
+#	print(ausilia)
 
 	multiplicities = {}
 	print("\tcalculating interactions\t", end='', flush=True)
