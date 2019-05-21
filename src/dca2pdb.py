@@ -6,6 +6,7 @@ import initialize_options
 import main_accessibility
 import main_interactions
 import main_mindistance
+import main_backmap
 from support import *
 
 def main_parser():
@@ -14,6 +15,7 @@ def main_parser():
 
 	parser.add_argument('-pdb', '--pdbname', nargs='?')
 	parser.add_argument('-a', '--accessibility', action='store_const', const='True', default='False')
+	parser.add_argument('-b', '--backmap', action='store_const', const='True', default='False')
 	parser.add_argument('-pf', '--inpfam', nargs='?')
 	parser.add_argument('-pf1', '--inpfam1', nargs='?')
 	parser.add_argument('-pf2', '--inpfam2', nargs='?')
@@ -79,7 +81,9 @@ def main_parser():
 			print("ERROR: argument of option {0} is badly formatted".format(k))
 			exit(1)
 
-	if options['accessibility'] == True:
+	if options['backmap'] == True:
+		main_backmap.main_backmap(options)
+	elif options['accessibility'] == True:
 		main_accessibility.main_accessibility(options)
 	elif type(options['min_dist']) != type(None) or options['find_structures'] == True:
 		main_mindistance.main_mindistance(options)

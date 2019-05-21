@@ -20,9 +20,15 @@ database_filenames_filename = options['support_files'] + "database_filenames.txt
 
 if os.path.exists(pfam_version_path):
 	print("Pfam version {0} is already present".format(pfam_version))
+	ans = query_yes_no("Do you want to verify the installation?", default="yes")
 else:
-	os.mkdir(options['pfam_version_main'])
-	os.mkdir(options['database_files_relpath'])
+	ans = True
+
+if ans:
+	if not os.path.exists(options['pfam_version_main']):
+		os.mkdir(options['pfam_version_main'])
+	if not os.path.exists(options['database_files_relpath']):
+		os.mkdir(options['database_files_relpath'])
 
 	print("Downloading files from Pfam:")
 	totspace = 0
@@ -39,6 +45,8 @@ else:
 				database_folder = ""
 			URL = "ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/{2}/{1}.gz".format(pfam_version, database_filename, database_folder)
 			destination = "{1}/{0}.gz".format(database_filename, options['database_files_relpath'])
+			if os.path.exists(destination):
+				continue
 			text = subprocess.run(["curl -sI {0} | grep -i Content-Length | awk '{{print $2}}' | {1}/byte_to_human.sh".format(URL, this_path)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8')
 			totspace += int(subprocess.run(["curl -sI {0} | grep -i Content-Length".format(URL)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split("\n")[0].split()[1])
 			num, unit = text.split('\n')[0].split()

@@ -109,7 +109,7 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 					interactions[(pfam_acc1, pfam_acc2)][(cmult1, cmult2)][dca_i1-1][dca_i2-1] = d
 					sc_interactions[(pfam_acc1, pfam_acc2)][(cmult1, cmult2)][dca_i1-1][dca_i2-1] = dSC
 					CA_interactions[(pfam_acc1, pfam_acc2)][(cmult1, cmult2)][dca_i1-1][dca_i2-1] = dCA
-					print(d, dSC, dCA)
+#					print(d, dSC, dCA)
 					ausilia[(pfam_acc1, pfam_acc2)][(cmult1, cmult2)][dca_i1-1][dca_i2-1] = (c1, r1, c2, r2)
 
 	tf = time.time()
@@ -129,7 +129,7 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 			if inch1 and {c1, c2} != {inch1, inch2}:
 				continue
 			pfam_acc1, pfam_acc2 = x
-			interactions_filename = results_folder + "{0}_{1}_{2}_{3}_{4}.txt".format(pfam_acc1, pfam_acc2, pdbname, cmult1, cmult2)
+			interactions_filename = results_folder + "{0}_{1}_{2}_{3}_{4}_{5}.txt".format(pfam_acc1, pfam_acc2, pdbname, cmult1, cmult2, imm)
 			if pfam_acc1 == pfam_acc2 and cmult1 == cmult2:
 				attr = 'same'
 				offset = 0

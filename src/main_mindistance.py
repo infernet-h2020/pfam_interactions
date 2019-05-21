@@ -107,6 +107,10 @@ def main_mindistance(options):
 						mind_pdbs.append(pdbname)
 		mind_pdbs = sorted(list(mind_pdbs))
 	else:
+		if inpfam:
+			self_inter = True
+		else:
+			self_inter = False
 		if os.path.exists(mindist):
 			with open(mindist) as mindist_file:
 				for line in mindist_file:
@@ -267,6 +271,6 @@ def main_mindistance(options):
 
 
 	if inpfam:
-		mindistance.mindistance(mind_pdbs, inpfam, inpfam, only_intra, only_inter, results_folder, dca_filename, pfam_pfam_filename, with_offset=False)
+		mindistance.mindistance(mind_pdbs, inpfam, inpfam, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap, with_offset=False)
 	else:
-		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pfam_filename)
+		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap)
