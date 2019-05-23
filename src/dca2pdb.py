@@ -16,6 +16,7 @@ def main_parser():
 	parser.add_argument('-pdb', '--pdbname', nargs='?')
 	parser.add_argument('-a', '--accessibility', action='store_const', const='True', default='False')
 	parser.add_argument('-b', '--backmap', action='store_const', const='True', default='False')
+	parser.add_argument('-arch', '--check_architecture', action='store_const', const='True', default='False')
 	parser.add_argument('-pf', '--inpfam', nargs='?')
 	parser.add_argument('-pf1', '--inpfam1', nargs='?')
 	parser.add_argument('-pf2', '--inpfam2', nargs='?')

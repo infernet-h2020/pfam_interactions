@@ -63,7 +63,7 @@ def main_mindistance(options):
 	only_inter = options['only_inter']
 	find_str = options['find_structures']
 	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
-	check_architecture = True
+	check_architecture = options['check_architecture']
 	version = options['pfam_version']
 	inch1 = ''
 	inch2 = ''
@@ -93,19 +93,28 @@ def main_mindistance(options):
 					else:
 #						print(pdbname, "removed")
 						pass
-		else:
-			self_inter = False
-			text = subprocess.run(["grep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam1, pfam_pfam_filename, inpfam2)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
-			for line in text:
-				if not line:
-					continue
-				pdbname = line.strip().lower()
-				text1 = subprocess.run(["zgrep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam1, pfam_pdbmap, pdbname.upper())], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8')
-				text2 = subprocess.run(["zgrep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam2, pfam_pdbmap, pdbname.upper())], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8')
-				if text1.strip() and text2.strip():
+				else:
 					if pdbname not in mind_pdbs:
 						mind_pdbs.append(pdbname)
-		mind_pdbs = sorted(list(mind_pdbs))
+		else:
+			self_inter = False
+			if check_architecture:
+				text = subprocess.run(["grep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam1, pfam_pfam_filename, inpfam2)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+				pdbnames = sorted(list(set([x.strip().lower() for x in text if x.strip()])))
+				new_pdbnames = []
+				for pdbname in pdbnames:
+					text1 = subprocess.run(["zgrep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam1, pfam_pdbmap, pdbname.upper())], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8')
+					text2 = subprocess.run(["zgrep {0} {1} | grep {2} | awk '{{print $3}}'".format(inpfam2, pfam_pdbmap, pdbname.upper())], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8')
+					if text1.strip() and text2.strip() and pdbname not in new_pdbnames:
+						mind_pdbs.append(pdbname)
+			else:
+				text1 = subprocess.run(["zgrep {0} {1} | awk '{{print substr($1,1,4)}}'".format(inpfam1, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+				text2 = subprocess.run(["zgrep {0} {1} | awk '{{print substr($1,1,4)}}'".format(inpfam2, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+				pdbnames1 = [x.strip().lower() for x in text1 if x.strip()]
+				pdbnames2 = [x.strip().lower() for x in text2 if x.strip()]
+				#print(pdbnames1, pdbnames2)
+				mind_pdbs = sorted(list(set(pdbnames1) & set(pdbnames2)))
+		mind_pdbs = sorted(mind_pdbs)
 	else:
 		if inpfam:
 			self_inter = True
@@ -118,7 +127,7 @@ def main_mindistance(options):
 						continue
 					if line.strip() not in mind_pdbs:
 						mind_pdbs.append(line.strip())
-			mind_pdbs = sorted(list(mind_pdbs))
+			mind_pdbs = sorted(mind_pdbs)
 		else:
 			print("ERROR: The file specifying the PDB names for the mindist analysis cannot be found")
 			exit(1)

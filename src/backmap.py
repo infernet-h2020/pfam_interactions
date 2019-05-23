@@ -176,7 +176,8 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 			uniprot_pdb_resids[uniprot_acc][uniprot_resid].add((chain, pdb_resid))
 			if (chain, pdb_resid) not in pdb_uniprot_resids:
 				pdb_uniprot_resids[(chain, pdb_resid)] = []
-			pdb_uniprot_resids[(chain, pdb_resid)].append((uniprot_acc, uniprot_resid))
+			if (uniprot_acc, uniprot_resid) not in pdb_uniprot_resids[(chain, pdb_resid)]:
+				pdb_uniprot_resids[(chain, pdb_resid)].append((uniprot_acc, uniprot_resid))
 
 	tf = time.time()
 	print(time.strftime("%H:%M:%S", time.gmtime(tf-t)))

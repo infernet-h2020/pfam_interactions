@@ -71,11 +71,14 @@ def compute_accessibility(pdbname, pdb_path, pdb_dca_resids, allowed_residues, v
 				SASA[dca_i1] = []
 			SASA[dca_i1].append((pfam_acc_ann1, pdbname+' '+ch+' '+str(r), pre_SASA[(ch, r)], min(1, pre_rSASA[(ch, r)])))
 
+	accessibility = []
 	acessibility_filename = results_folder + "{0}_SASA.txt".format(pdbname)
 	with open(acessibility_filename, 'w') as accessibility_file:
 		for dca_i in SASA:
 			for x in SASA[dca_i]:
-				accessibility_file.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(dca_i, x[0], x[1], x[2], x[3]))
+				accessibility.append(("{0}\t{1}\t{2}\t{3}\t{4}\n".format(dca_i, x[0], x[1], x[2], x[3]), x, dca_i))
+		for entry in sorted(accessibility, key= lambda x: (x[1], x[2])):
+			accessibility_file.write(entry[0])
 	print(acessibility_filename)
 
 	return SASA
