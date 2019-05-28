@@ -34,9 +34,10 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 				up_str += pdb_uniprot_resids[(i[0], i[1])][ipur][0] + "_" + str(pdb_uniprot_resids[(i[0], i[1])][ipur][1]) + "-" + str(pdb_uniprot_resids[(e[0], e[1])][ipur][1])
 				up.append((pdb_uniprot_resids[(i[0], i[1])][ipur][0], (pdb_uniprot_resids[(i[0], i[1])][ipur][1], pdb_uniprot_resids[(e[0], e[1])][ipur][1])))
 			print(p+":", i[0], str(i[1])+"-"+str(e[1]), up_str)
-			backmap_table.append([p, (i[0], (i[1], e[1])), tuple(up)])
+			backmap_table.append([p, (i[0], (i[1], e[1])), tuple(up)])	# pfam_acc_ann, chain, init res, end res, mapping uniprot
 
 		print("Find the complete backmapping in {0}".format(backmap_filename))
+		#print(backmap_table)
 		return backmap_table
 
 	# Read index
@@ -142,7 +143,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 
 	valid_residues = {}
 	for chain in structure[0]:
-		valid_residues[chain.id] = [x.id[1] for x in chain]
+		valid_residues[chain.id] = [x.id[1] for x in chain if (not x.id[0].strip()) and not( x.id[2].strip()) and 'CA' in x]
 
 	indexed_pdb_uniprot_res_filename, ind = pdb_uniprot_index[pdbname.upper()]
 	with open(indexed_pdb_uniprot_res_filename) as indexed_pdb_uniprot_res_file:

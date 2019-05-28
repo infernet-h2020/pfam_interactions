@@ -19,6 +19,7 @@ def main_accessibility(options):
 	cache_folder = options['cache']
 	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
 	version = options['pfam_version']
+	accessibilities_by_domain = options['accessibilities_by_domain']
 	
 	if (not vmd_path):
 		print("ERROR: SASA calculation needs VMD to run. Specify a path for VMD")
@@ -40,4 +41,4 @@ def main_accessibility(options):
 
 	dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type=msa_type, force_download=force_download)
 
-	SASA = accessibility.compute_accessibility(pdbname, pdb_path, pdb_dca_resids, allowed_residues, vmd_path, results_folder)
+	SASA = accessibility.compute_accessibility(pdbname, pdb_path, pdb_dca_resids, backmap_table, allowed_residues, vmd_path, results_folder, accessibilities_by_domain)

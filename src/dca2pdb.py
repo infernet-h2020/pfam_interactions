@@ -1,5 +1,7 @@
-#!/bin/python3
-import sys, os
+#!/usr/local/bin/python3
+
+import os
+import sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 import initialize_options
@@ -15,6 +17,7 @@ def main_parser():
 
 	parser.add_argument('-pdb', '--pdbname', nargs='?')
 	parser.add_argument('-a', '--accessibility', action='store_const', const='True', default='False')
+	parser.add_argument('-adom', '--accessibilities_by_domain', action='store_const', const='True', default='False')
 	parser.add_argument('-b', '--backmap', action='store_const', const='True', default='False')
 	parser.add_argument('-arch', '--check_architecture', action='store_const', const='True', default='False')
 	parser.add_argument('-pf', '--inpfam', nargs='?')
@@ -32,7 +35,9 @@ def main_parser():
 	parser.add_argument('-v', '--pfam_version', nargs='?', default='32')
 	parser.add_argument('-out', '--output_path', nargs='?', default='None')
 	parser.add_argument('-find_str', '--find_structures', action='store_const', const='True', default='False')
-	parser.add_argument('-no_indexing', '--no_indexing', action='store_const', const='True', default='False')
+#	parser.add_argument('-no_indexing', '--no_indexing', action='store_const', const='True', default='False')
+	parser.add_argument('--reset_cache', action='store_const', const='True', default='False')
+	parser.add_argument('-no_cache', '--no_cache', action='store_const', const='True', default='False')
 
 	# Default values for optional arguments
 	parser.set_defaults(pdbname = 'None')
@@ -52,10 +57,12 @@ def main_parser():
 	# Parse options
 	parsed = parser.parse_args()
 	options = initialize_options.initialize_options(version=parsed.pfam_version)
-#	print(parsed)
 	for x in parsed.__dict__:
 		options[x] = string_decode_element(parsed.__dict__[x], permissive=True, simple_version=True)
-#	print(options)
+
+	if options['reset_cache']:
+		subprocess.run("rm", "-f", "{0}/*".format(options['cache']))
+		subprocess.run("rm", "-f", "{0}/.*".format(options['cache']))
 
 
 	pfam_msa_types = {'uniprot' : 'uniprot', 'full' : 'full', 'rp75' : 'rp75'}
@@ -84,7 +91,7 @@ def main_parser():
 
 	if options['backmap'] == True:
 		main_backmap.main_backmap(options)
-	elif options['accessibility'] == True:
+	elif options['accessibility'] == True or options['accessibilities_by_domain']:
 		main_accessibility.main_accessibility(options)
 	elif type(options['min_dist']) != type(None) or options['find_structures'] == True:
 		main_mindistance.main_mindistance(options)

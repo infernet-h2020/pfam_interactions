@@ -12,11 +12,6 @@ on the surface of the monomers (especially helpful in case the structure of the
 complex is missing)
 
 
-## Required software
-
-The free molecular visualization software [VMD][vmd] Version 1.9.3 is needed to 
-compute the exposed surface of the interacting residues.
-
 ## Tutorial - Testing the quality of a DCA contact prediction based on Pfam MSAs
 
 The main scope of the Pfam interaction database presented in this repository is to serve

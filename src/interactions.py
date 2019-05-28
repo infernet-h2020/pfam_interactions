@@ -4,7 +4,7 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 	print("Interactions:")
 	t = time.time()
 	bb_names = {'N', 'O', 'OXT', 'C'}
-	distance_threshold = 20
+	distance_threshold = 30
 	print("\tcalculating distances\t", end='', flush=True)
 	pickle_filename = cache_folder + "." + pdbname + "_distances.pkl"
 	if os.path.exists(pickle_filename):
@@ -159,7 +159,7 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 							except:
 								uniprot_resids2 = "None"
 	
-							interactions_file.write("{0:6}\t{1:6}\t{2:4}\t{3:4}\t{4:4}\t{5:4}\t{6:10.4}\t{7:10.4}\t{8:10.4}\t{9}\t{10}\n".format(i+1, j+1+offset, ac1, ar1, ac2, ar2, val, sc_val, CA_val, uniprot_resids1, uniprot_resids2))
+							interactions_file.write("{0:6}\t{1:6}\t{2:4}\t{3:4}\t{4:4}\t{5:4}\t{6:12.6f}\t{7:12.6f}\t{8:12.6f}\t{9}\t{10}\n".format(i+1, j+1+offset, ac1, ar1, ac2, ar2, val, sc_val, CA_val, uniprot_resids1, uniprot_resids2))
 			if (pfam_acc1, pfam_acc2) not in multiplicities:
 				multiplicities[(pfam_acc1, pfam_acc2)] = []
 			if (cmult1, cmult2) not in multiplicities[(pfam_acc1, pfam_acc2)]:

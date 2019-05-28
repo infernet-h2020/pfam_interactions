@@ -239,6 +239,7 @@ def convindex_uniprot_dca__format_stockholm(line):
 
 def download_pfam_files(pfam_acc, folder, msa_type, version, only_name=False):
 	folder = folder + pfam_acc[:4] + '/'
+	return folder + "/{0}_{1}_v{2}.stockholm.gz".format(pfam_acc, msa_type, version)
 	if version != 32:
 		print(version)
 		print("THE version OPTION IS NOT YET IMPLEMENTED")

@@ -234,7 +234,7 @@ def main_mindistance(options):
 							
 			
 	
-
+	main_backmap_table = {}
 	interaction_filenames = set()
 	for pdbname in mind_pdbs:
 #		if cluster and pdbname in failed_pdbs:
@@ -259,6 +259,7 @@ def main_mindistance(options):
 			exit(1)
 
 		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type=msa_type, force_download=force_download)
+		main_backmap_table[pdbname] = backmap_table
 
 		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter)	
 		interaction_filenames |= int_filenames	
@@ -280,6 +281,6 @@ def main_mindistance(options):
 
 
 	if inpfam:
-		mindistance.mindistance(mind_pdbs, inpfam, inpfam, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap, with_offset=False)
+		mindistance.mindistance(mind_pdbs, inpfam, inpfam, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap, main_backmap_table, with_offset=False)
 	else:
-		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap)
+		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap, main_backmap_table)
