@@ -8,12 +8,14 @@ tools for mapping DCA predictions onto PDB structures.
 ## Contents 
 
 * db/ contains the **benchmark tables** (interaction\_database/) mapping each Pfam domain or pair of Pfam domains
-to the respective PDB structures. 
+to the respective PDB structures. It is also the location where helper files from Pfam are downloaded (external\_resources/) 
 
 * src/ contains the **dca2pdb** tool suite, which allows a direct mapping of any DCA prediction based on 
 Pfam's multiple sequence alignments to the chosen PDB structure
 
 * examples/ contains several **examples** for the correct use of all dca2pdb options (please refer to src/README.md)
+
+* .cache/ is the location where dca2pdb will store precomputed results to speed up further queries
 
 
 ## Installation
@@ -30,8 +32,15 @@ To install, just navigate to the main folder of the package and type
 ./install.sh
 `
 
-There are no options to set.
+After the installation, we recommend to add the pfam\_interations/bin/ path to your PATH environment variable by adding 
+this line to your ~/.bashrc file (in case you are running bash)
 
+`
+export PATH=/your/path/to/pfam\_interations/bin/:$PATH
+`
+
+Note: the installation takes much time (2-3 hours), since it has to download ~15 Gb of information from Pfam and then indicize
+the files in order to be faster during runtime.
 
 
 <a name="infernet_logo"/>

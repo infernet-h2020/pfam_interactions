@@ -26,6 +26,14 @@ echo "Decompressing Pfam interaction database..."
 find ${DIR}/db/interaction_database/ -name '*.tgz' -execdir tar -xzvf '{}' \; >/dev/null 2>&1
 echo ""
 
+# Create executable
+mkdir bin/
+python3_path=`which python3`
+if [[ "${python3_path}" != "" ]]
+then
+	echo "#!${python3_path}" | cat - src/dca2pdb.py > bin/dca2pdb
+	chmod 777 bin/dca2pdb
+fi
 
 echo "Upgrading pip..."
 pip install --upgrade pip >/dev/null 2>&1
