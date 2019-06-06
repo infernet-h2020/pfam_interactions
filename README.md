@@ -20,6 +20,10 @@ Pfam's multiple sequence alignments to the chosen PDB structure
 
 ## Installation
 
+### Requirements
+
+* GCC compiler
+
 The package will decompress the Pfam interaction benchmark tables contained in db/interaction\_database/ and download 
 a few large database file from Pfam, storing them in db/external\_resources/. The version of the Pfam database used
 is by default **Pfam 32.0**, but this can be easily changed by changing the value of the "version" variable in the

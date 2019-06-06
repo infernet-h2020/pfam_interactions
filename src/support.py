@@ -261,6 +261,7 @@ def download_pfam_files(pfam_acc, folder, msa_type, version, only_name=False):
 
 
 def download_pdb(pdbname, output_folder):
+	print("wget", "https://files.rcsb.org/download/{0}.pdb".format(pdbname.upper()), "-O", "{0}/{1}.pdb")
 	subprocess.run(["wget", "https://files.rcsb.org/download/{0}.pdb".format(pdbname.upper()), "-O", "{0}/{1}.pdb".format(output_folder, pdbname.lower())], stdout=open("/dev/null", 'w'), stderr=open("/dev/null", 'w'))
 
 

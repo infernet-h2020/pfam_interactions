@@ -20,7 +20,7 @@ def main_backmap(options):
 	
 	# Download PDB if needed
 	pdb_path = options['pdb_files_ext_path'] + pdbname.lower() + '.pdb'
-	if not os.path.exists(pdb_path):
+	if not os.path.exists(pdb_path) or os.stat(pdb_path).st_size == 0:
 		if not os.path.exists(options['pdb_files_ext_path']):
 			print("ERROR: PDB path not found")
 			exit(1)

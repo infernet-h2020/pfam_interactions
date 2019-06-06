@@ -24,7 +24,7 @@ def main_interactions(options):
 	# Download PDB if needed
 	pdb_path = options['pdb_files_ext_path'] + pdbname.lower() + '.pdb'
 	if not os.path.exists(pdb_path):
-		if not os.path.exists(options['pdb_files_ext_path']):
+		if not os.path.exists(options['pdb_files_ext_path']) or os.stat(options['pdb_files_ext_path']).st_size == 0:
 			print("ERROR: PDB path not found")
 			print(options['pdb_files_ext_path'])
 			exit(1)
