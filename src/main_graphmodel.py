@@ -74,7 +74,7 @@ def parallel_submission_routine(data):
 	return interaction_filenames, main_backmap_table
 
 
-def main_mindistance(options):
+def main_graphmodel(options):
 	mindist = options['min_dist']
 	inpfam = options['inpfam']
 	inpfam1 = options['inpfam1']
@@ -101,8 +101,114 @@ def main_mindistance(options):
 	inch1 = ''
 	inch2 = ''
 
+
+	text = []
+	pdbnames = []
+	pdbtypes = [[], []]
+	for i, inpfam in enumerate([inpfam1, inpfam2]):
+		text.append(subprocess.run(["zgrep {0} {1} | awk '{{print substr($1,1,4)}}'".format(inpfam, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n'))
+		pdbnames.append([x.strip().lower() for x in text[i] if x.strip()])
+		for pdbname in pdbnames[i]:
+			textu = subprocess.run(["zgrep {0} {1} | awk '{{print substr($4,1,7)}}'".format(pdbname.upper(), pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+			textu = [x for x in textu if x.strip()]
+			if not textu:
+				print("Empty")
+				exit(1)
+			if len(textu) == 1:
+				if textu[0] == inpfam:
+					pdbtype = "single"
+				else:
+					print("How is this possible?")
+					print(text)
+					print(textu)
+					exit(1)
+			else:
+				homogeneous = True
+				has_partner = False
+				for pfam_found in textu:
+					if pfam_found != inpfam:
+						homogeneous = False
+					if pfam_found == [inpfam1, inpfam2][1-i]:
+						has_partner = True
+				if homogeneous:
+					pdbtype = "homogeneous"
+				elif not has_partner:
+					pdbtype = "heterogeneous"
+				else:
+					pdbtype = "partner"
+			pdbtypes[i].append(pdbtype)
+	intersection_pdbs = sorted(list(set(pdbnames[0]) & set(pdbnames[1])))
+
+	print("\n\nPDBs with both partners:")
+	print("".join([x+" " for x in intersection_pdbs]))
+	print("\n\nPDBS with Pfam {0}:".format(inpfam1))
+	print("".join([x+" "+pdbtypes[0][i]+"\n" for i,x in enumerate(pdbnames[0])]))
+	print("\n\nPDBS with Pfam {0}:".format(inpfam2))
+	print("".join([x+" "+pdbtypes[1][i]+"\n" for i,x in enumerate(pdbnames[1])]))
+
+	type0pdbs = [[x for i,x in enumerate(pdbnames[0]) if pdbtypes[0][i]==0], [x for i,x in enumerate(pdbnames[1]) if pdbtypes[1][i]==0]]
+	
+	master_interactions = {}
+	for pdbname in intersection_pdbs:
+		print("\nPDB: ", pdbname, '-'*150)
+		pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
+		try:
+			pfam_in_pdb = matches.calculate_matches(pdbname, inpfam, inpfam1, inpfam2, pdb_pfam_filename)
+		except:
+			failed_pdbs.add(pdbname)
+			continue
+
+		# Download PDB if needed
+		pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
+		if not os.path.exists(pdb_path):
+			if not os.path.exists(pdb_files_ext_path):
+				print("ERROR: PDB path not found")
+				exit(1)
+			download_pdb(pdbname, pdb_files_ext_path)
+		if not os.path.exists(pdb_path):
+			print("ERROR: PDB " + pdbname + " not found")
+			exit(1)
+
+		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type=msa_type, force_download=force_download)
+		main_backmap_table[pdbname] = backmap_table
+
+		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter)	
+		interaction_filenames |= int_filenames
+	
+		for int_filename in int_filenames:
+			with open(int_filename) as int_file:
+				for line in int_file:
+					fields = line.split()
+					if fields[2] == 'None':
+						dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], fields[3], fields[4], fields[5], 1000000.0
+					else:
+						dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], int(fields[3]), fields[4], int(fields[5]), float(fields[7])
+					if (dca1, dca2) not in master_interactions:
+						master_interactions[(dca1, dca2)] = []
+					master_interactions[(dca1, dca2)].append(pdbname, ((ch1, resid1), (ch2, resid2), dist))
+
+	interaction_dist_thr = 8.0
+	interation_list = []
+	interaction_strength = []
+	Ninter = len(master_interactions[(dca1, dca2)])
+	for dca1, dca2 in sorted(list(master_interactions.keys())):
+		for i in range(Ninter):
+			if master_interactions[(dca1, dca2)][6] <= interaction_dist_thr:
+				if (dca1, dca2) not in interaction_list:
+					interaction_list.append((dca1, dca2))
+					interaction_strength.append(1)
+				else:
+					interaction_strength[-1] += 1
+	
+
+
+
+	exit(1)
+
+
+
 	if not dca_filename and not find_str:
-		print("WARNING: mindist will not be ordered by a DCA score (DCA file is missing)")
+		print("ERROR: mindist needs a precomputed plmdca filename")
 	if find_str:
 		mindist = 'all'
 	

@@ -5,6 +5,7 @@ import time
 import codecs
 import datetime
 import subprocess
+import multiprocessing
 import argparse
 import pickle
 import Bio.PDB

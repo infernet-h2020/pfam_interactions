@@ -36,6 +36,7 @@ def main_parser():
 #	parser.add_argument('-no_indexing', '--no_indexing', action='store_const', const='True', default='False')
 	parser.add_argument('--reset_cache', action='store_const', const='True', default='False')
 	parser.add_argument('-no_cache', '--no_cache', action='store_const', const='True', default='False')
+	parser.add_argument('-np', '--nprocesses', nargs='?')
 
 	# Default values for optional arguments
 	parser.set_defaults(pdbname = 'None')
@@ -50,6 +51,7 @@ def main_parser():
 	parser.set_defaults(force_download = 'False')
 	parser.set_defaults(min_dist = 'None')
 	parser.set_defaults(dca_filename = 'None')
+	parser.set_defaults(nprocesses = '1')
 	
 
 	# Parse options
