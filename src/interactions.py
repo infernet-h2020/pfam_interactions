@@ -1,6 +1,74 @@
 from support import *
 
-def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=False):
+
+def compute_distances(pdbname, pdb_path, output_filename, ch1='', ch2=''):
+	distance = []
+	sc_distance = []
+	CA_distance = []
+	new_tot_dist = {}
+	parser = Bio.PDB.PDBParser(QUIET=True)
+	structure = parser.get_structure(pdbname, pdb_path)
+
+	with open(output_filename, 'w') as output_file:
+		distance_threshold = 30
+		bb_names = {'N', 'O', 'OXT', 'C', 'CA'}
+		chain_pairs = []
+		for model in structure:
+			for chain1 in model:
+				ch1id = chain1.get_id()
+				if ch1 and ch1 != ch1id:
+					continue
+				for chain2 in model:
+					ch2id = chain2.get_id()
+					if ch2 and ch2 != ch2id:
+						continue
+#					if (ch1id, ch2id) in chain_pairs or (ch2id, ch1id) in chain_pairs:
+#						continue
+					for res1 in chain1:
+						if res1.id[0].strip():
+							continue
+						for res2 in chain2:
+							if res2.id[0].strip():
+								continue
+#							if ch1id == ch2id and res2.id[1] <= res1.id[1]:
+#								continue
+
+							if 'CA' in res1 and 'CA' in res2:
+								CA_CA_d = np.linalg.norm(res1['CA'].get_vector() - res2['CA'].get_vector())
+							else:
+								CA_CA_d = -1
+
+							CA_distance.append(CA_CA_d)
+							if CA_CA_d > distance_threshold:
+								sc_distance.append(CA_CA_d)
+								distance.append(CA_CA_d)
+								output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], CA_CA_d, CA_CA_d, CA_CA_d))
+								continue
+
+							mindist = 100000
+							mindist_sc = 100000
+							for a1 in res1:
+								for a2 in res2:
+									d = np.linalg.norm(a1.get_vector() - a2.get_vector())
+									if d < mindist:
+										mindist = d
+									if d < mindist_sc and (a1.id not in bb_names) and (a2.id not in bb_names):
+										mindist_sc = d
+							if mindist == 100000:
+								mindist = -1
+							if mindist_sc == 100000:
+								mindist_sc = -1
+							distance.append(mindist)
+							sc_distance.append(mindist_sc)
+							new_tot_dist[((ch1id, res1.id[1]), (ch2id, res2.id[1]))] = (distance[-1], sc_distance[-1], CA_distance[-1])
+
+							output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], mindist, mindist_sc, CA_CA_d))
+			break	# consider only first model
+
+	return new_tot_dist
+
+
+def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=False, allow_overwrite_dist=True):
 	print("Interactions:")
 	t = time.time()
 	bb_names = {'N', 'O', 'OXT', 'C'}
@@ -11,7 +79,7 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 	proto_residues_linear = []
 	unmapped_residues_linear = []
 	if os.path.exists(pickle_filename):
-		tot_dist, all_res = pickle.load(open(pickle_filename, 'rb'))
+		tot_dist = pickle.load(open(pickle_filename, 'rb'))
 		distance = []
 		sc_distance = []
 		CA_distance = []
@@ -36,10 +104,23 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 
 		unmapped_residues_linear = sorted(list(set(allowed_residues_linear) - set(proto_residues_linear)))
 
+		residues_linear = proto_residues_linear
+#		N = len(residues_linear)
+#		distance = np.array(distance).reshape((N, N))
+#		sc_distance = np.array(sc_distance).reshape((N, N))
+#		CA_distance = np.array(CA_distance).reshape((N, N))
+
 #		N, residues_linear, distance, sc_distance, CA_distance = pickle.load(open(pickle_filename, 'rb'))
 		print("(pickled!)\t", end='', flush=True)
 
-	if not os.path.exists(pickle_filename) or unmapped_residues_linear:
+
+	if unmapped_residues_linear:
+		print("Unmapped residues are present:", unmapped_residues_linear)
+	if not os.path.exists(pickle_filename):
+		print("Pickle not found")
+
+	new_tot_dist = {}
+	if (not os.path.exists(pickle_filename)) or unmapped_residues_linear:
 		residues_linear = []
 		distance = []
 		sc_distance = []
@@ -47,7 +128,6 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 		parser = Bio.PDB.PDBParser(QUIET=True)
 		structure = parser.get_structure(pdbname, pdb_path)
 
-		new_tot_dist = {}
 		for model in structure:
 			for chain1 in allowed_residues:
 				c1 = model[chain1]
@@ -64,16 +144,11 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 							distance += [0]*len(allowed_residues[chain2])
 							sc_distance += [0]*len(allowed_residues[chain2])
 							CA_distance += [0]*len(allowed_residues[chain2])
-							for resid2 in allowed_residues[chain2]:
-								### ALT! POTREBBE ESSERCI UN BUG PIU' SERIO SE GLI ALLOWED RESIDUES SONO DIVERSI
-								# IN PRATICA LE TRE RIGHE QUA SOPRA POTREBBERO PORTARE A UNA MATRICE SBAGLIATA (MA NON E' MAI SUCCESSO
-								# PERCHE' C'ERA STO ALTRO BUG A MASCHERARE TUTTO!). INSOMMA, TOGLIERE! NON SI PUO' INSERIRE UNA RIGA DI
-								# ZERI SENZA CONTROLLARE CHE CI SIANO NEL PDB! (MA FORSE CONTROLLO NEL BACKMAP?)
 							for r2 in c2:
 								resid2 = r2.id[1]
-								if r2.id[2].strip():
+								if r2.id[2].strip() or resid2 not in allowed_residues[chain2]:
 									continue
-								
+								new_tot_dist[((chain1, resid1), (chain2, resid2))] = (0, 0, 0)
 							continue
 						for r2 in c2:
 							resid2 = r2.id[1]
@@ -85,11 +160,13 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 								distance.append(0)
 								sc_distance.append(0)
 								CA_distance.append(0)
+								new_tot_dist[((chain1, resid1), (chain2, resid2))] = (0, 0, 0)
 								continue
 							if (chain1, resid1) in proto_residues_linear and (chain2, resid2) in proto_residues_linear:
 								distance.append(tot_dist[((chain1, resid1), (chain2, resid2))][0])
 								sc_distance.append(tot_dist[((chain1, resid1), (chain2, resid2))][1])
 								CA_distance.append(tot_dist[((chain1, resid1), (chain2, resid2))][2])
+								new_tot_dist[((chain1, resid1), (chain2, resid2))] = (distance[-1], sc_distance[-1], CA_distance[-1])
 								continue
 							CA_CA_d = np.linalg.norm(r1['CA'].get_vector() - r2['CA'].get_vector())
 							CA_distance.append(CA_CA_d)
@@ -111,17 +188,23 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 							sc_distance.append(mindist_sc)
 							new_tot_dist[((chain1, resid1), (chain2, resid2))] = (mindist, mindist_sc, CA_CA_d)
 			break	# consider only first model
-		N = len(residues_linear)
 
-		distance = np.array(distance).reshape((N, N))
-		sc_distance = np.array(sc_distance).reshape((N, N))
-		CA_distance = np.array(CA_distance).reshape((N, N))
 
-	if (not os.path.exists(pickle_filename)) or allow_overwrite_dist:
+	N = len(residues_linear)
+
+	distance = np.array(distance).reshape((N, N))
+	sc_distance = np.array(sc_distance).reshape((N, N))
+	CA_distance = np.array(CA_distance).reshape((N, N))
+
+#	if not unmapped_residues_linear:
+#		residues_linear = proto_residues_linear
+#		N = len(residues_linear)
+
+	if (not os.path.exists(pickle_filename)) or (len(unmapped_residues_linear)>0 and allow_overwrite_dist):
 		if unmapped_residues_linear:
 			for x in tot_dist:
 				new_tot_dist[x] = tot_dist[x]
-		pickle.dump((new_tot_dist, open(pickle_filename, 'wb'))
+		pickle.dump(new_tot_dist, open(pickle_filename, 'wb'))
 
 	tf = time.time()
 	print(time.strftime("%H:%M:%S", time.gmtime(tf-t)))

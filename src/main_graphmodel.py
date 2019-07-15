@@ -2,6 +2,8 @@ import matches
 import backmap
 import interactions
 import mindistance
+import networkx as nx
+import matplotlib.pyplot as plt
 from support import *
 
 
@@ -66,12 +68,53 @@ def parallel_submission_routine(data):
 			print("ERROR: PDB " + pdbname + " not found")
 			exit(1)
 
-		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type=msa_type, force_download=force_download)
+		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
 		main_backmap_table[pdbname] = backmap_table
 
 		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter)	
 		interaction_filenames |= int_filenames
 	return interaction_filenames, main_backmap_table
+
+
+def calculate_connected_components(edge_labels, edge_weights):
+	def rec(a,b,c):
+		for i in b[c]:
+			if i not in a:
+				a.append(i)
+				a = rec(a,b,c)
+		return a
+
+
+	vertices = []
+	neighbors = {}
+	for ie, edge_label in enumerate(edge_labels):
+		for iv, v in enumerate(edge_label):
+#			print(edge_label, iv, v)
+			if v not in vertices:
+				vertices.append(v)
+				neighbors[v] = []
+			if edge_weights[ie] == 0:
+				continue
+			if edge_label[1-iv] not in neighbors[v]:
+				neighbors[v].append(edge_label[1-iv])
+	visited_v = []
+	conn_comps = []
+	print("EDGES", list(zip(edge_labels, edge_weights)))
+	for v in vertices:
+		print("VERTEX", v)
+		if v not in visited_v:
+			print("NOT VISITED")
+			conn_comp = [v]
+#			visited_v.append(v)
+			conn_comp = rec(conn_comp, neighbors, v)
+			print("CONN_COMP", conn_comp)
+			conn_comps.append(conn_comp)
+			print("CONN_COMPS_TOT", conn_comps)
+#			if len(conn_comp) > 1:
+			visited_v += conn_comp#[1:]
+			print("VISITED_V", visited_v)
+
+	return conn_comps, vertices
 
 
 def main_graphmodel(options):
@@ -102,106 +145,360 @@ def main_graphmodel(options):
 	inch2 = ''
 
 
-	text = []
-	pdbnames = []
-	pdbtypes = [[], []]
-	for i, inpfam in enumerate([inpfam1, inpfam2]):
-		text.append(subprocess.run(["zgrep {0} {1} | awk '{{print substr($1,1,4)}}'".format(inpfam, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n'))
-		pdbnames.append([x.strip().lower() for x in text[i] if x.strip()])
-		for pdbname in pdbnames[i]:
-			textu = subprocess.run(["zgrep {0} {1} | awk '{{print substr($4,1,7)}}'".format(pdbname.upper(), pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
-			textu = [x for x in textu if x.strip()]
-			if not textu:
-				print("Empty")
-				exit(1)
-			if len(textu) == 1:
-				if textu[0] == inpfam:
-					pdbtype = "single"
-				else:
-					print("How is this possible?")
-					print(text)
-					print(textu)
+	dist1_filename = results_folder + "{0}_distances.txt".format(inpfam1)
+	dist2_filename = results_folder + "{0}_distances.txt".format(inpfam2)
+	distances1 = []
+	distances1_labels = []
+	distances2 = []
+	distances2_labels = []
+	if not (os.path.exists(dist1_filename) and os.path.exists(dist2_filename)):
+		text = []
+		pdbnames = []
+		pdbtypes = [[], []]
+		for i, inpfam in enumerate([inpfam1, inpfam2]):
+			text.append(subprocess.run(["zgrep {0} {1} | awk '{{print substr($1,1,4)}}'".format(inpfam, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n'))
+			pdbnames.append(sorted(list(set([x.strip().lower() for x in text[i] if x.strip()])))[:10]) # DEBUG LEVA IL [:10] !!!!!!!!!!!!!!!!!!!!!!!!
+			for pdbname in pdbnames[i]:
+				textu = subprocess.run(["zgrep {0} {1} | awk '{{print substr($4,1,7)}}'".format(pdbname.upper(), pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+				textu = [x for x in textu if x.strip()]
+				if not textu:
+					print("Empty")
 					exit(1)
-			else:
-				homogeneous = True
-				has_partner = False
-				for pfam_found in textu:
-					if pfam_found != inpfam:
-						homogeneous = False
-					if pfam_found == [inpfam1, inpfam2][1-i]:
-						has_partner = True
-				if homogeneous:
-					pdbtype = "homogeneous"
-				elif not has_partner:
-					pdbtype = "heterogeneous"
-				else:
-					pdbtype = "partner"
-			pdbtypes[i].append(pdbtype)
-	intersection_pdbs = sorted(list(set(pdbnames[0]) & set(pdbnames[1])))
-
-	print("\n\nPDBs with both partners:")
-	print("".join([x+" " for x in intersection_pdbs]))
-	print("\n\nPDBS with Pfam {0}:".format(inpfam1))
-	print("".join([x+" "+pdbtypes[0][i]+"\n" for i,x in enumerate(pdbnames[0])]))
-	print("\n\nPDBS with Pfam {0}:".format(inpfam2))
-	print("".join([x+" "+pdbtypes[1][i]+"\n" for i,x in enumerate(pdbnames[1])]))
-
-	type0pdbs = [[x for i,x in enumerate(pdbnames[0]) if pdbtypes[0][i]==0], [x for i,x in enumerate(pdbnames[1]) if pdbtypes[1][i]==0]]
-	
-	master_interactions = {}
-	for pdbname in intersection_pdbs:
-		print("\nPDB: ", pdbname, '-'*150)
-		pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
-		try:
-			pfam_in_pdb = matches.calculate_matches(pdbname, inpfam, inpfam1, inpfam2, pdb_pfam_filename)
-		except:
-			failed_pdbs.add(pdbname)
-			continue
-
-		# Download PDB if needed
-		pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
-		if not os.path.exists(pdb_path):
-			if not os.path.exists(pdb_files_ext_path):
-				print("ERROR: PDB path not found")
-				exit(1)
-			download_pdb(pdbname, pdb_files_ext_path)
-		if not os.path.exists(pdb_path):
-			print("ERROR: PDB " + pdbname + " not found")
-			exit(1)
-
-		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type=msa_type, force_download=force_download)
-		main_backmap_table[pdbname] = backmap_table
-
-		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter)	
-		interaction_filenames |= int_filenames
-	
-		for int_filename in int_filenames:
-			with open(int_filename) as int_file:
-				for line in int_file:
-					fields = line.split()
-					if fields[2] == 'None':
-						dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], fields[3], fields[4], fields[5], 1000000.0
+				if len(textu) == 1:
+					if textu[0] == inpfam:
+						pdbtype = "single"
 					else:
-						dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], int(fields[3]), fields[4], int(fields[5]), float(fields[7])
-					if (dca1, dca2) not in master_interactions:
-						master_interactions[(dca1, dca2)] = []
-					master_interactions[(dca1, dca2)].append(pdbname, ((ch1, resid1), (ch2, resid2), dist))
-
-	interaction_dist_thr = 8.0
-	interation_list = []
-	interaction_strength = []
-	Ninter = len(master_interactions[(dca1, dca2)])
-	for dca1, dca2 in sorted(list(master_interactions.keys())):
-		for i in range(Ninter):
-			if master_interactions[(dca1, dca2)][6] <= interaction_dist_thr:
-				if (dca1, dca2) not in interaction_list:
-					interaction_list.append((dca1, dca2))
-					interaction_strength.append(1)
+						print("How is this possible?")
+						print(text)
+						print(textu)
+						exit(1)
 				else:
-					interaction_strength[-1] += 1
+					homogeneous = True
+					has_partner = False
+					for pfam_found in textu:
+						if pfam_found != inpfam:
+							homogeneous = False
+						if pfam_found == [inpfam1, inpfam2][1-i]:
+							has_partner = True
+					if homogeneous:
+						pdbtype = "homogeneous"
+					elif not has_partner:
+						pdbtype = "heterogeneous"
+					else:
+						pdbtype = "partner"
+				pdbtypes[i].append(pdbtype)
+		intersection_pdbs = sorted(list(set(pdbnames[0]) & set(pdbnames[1])))
+	
+		print("\n\nPDBs with both partners:")
+		print("".join([x+" " for x in intersection_pdbs]))
+		print("\n\nPDBS with Pfam {0}:".format(inpfam1))
+		print("".join([x+" "+pdbtypes[0][i]+"\n" for i,x in enumerate(pdbnames[0])]))
+		print("\n\nPDBS with Pfam {0}:".format(inpfam2))
+		print("".join([x+" "+pdbtypes[1][i]+"\n" for i,x in enumerate(pdbnames[1])]))
+	
+		type0pdbs = [[x for i,x in enumerate(pdbnames[0]) if pdbtypes[0][i]==0], [x for i,x in enumerate(pdbnames[1]) if pdbtypes[1][i]==0]]
+	
+		failed_pdbs = set()	
+		master_interactions = {}
+		main_backmap_table = {}
+		master_interactions_1 = {}
+		main_backmap_table_1 = {}
+		master_interactions_2 = {}
+		main_backmap_table_2 = {}
+		interaction_filenames = set()
+		interaction_filenames_1 = set()
+		interaction_filenames_2 = set()
+		for pdbname in intersection_pdbs:
+			print("\nPDB: ", pdbname, '-'*150)
+			pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
+			try:
+				pfam_in_pdb = matches.calculate_matches(pdbname, '', inpfam1, inpfam2, pdb_pfam_filename)
+			except:
+				failed_pdbs.add(pdbname)
+				continue
+			print(failed_pdbs)
+	
+			# Download PDB if needed
+			pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
+			if not os.path.exists(pdb_path):
+				if not os.path.exists(pdb_files_ext_path):
+					print("ERROR: PDB path not found")
+					exit(1)
+				download_pdb(pdbname, pdb_files_ext_path)
+			if not os.path.exists(pdb_path):
+				print("ERROR: PDB " + pdbname + " not found")
+				exit(1)
+	
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			main_backmap_table[pdbname] = backmap_table
+	
+			int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=False)	
+			interaction_filenames |= int_filenames
+	
+			for int_filename in int_filenames:
+				with open(int_filename) as int_file:
+					for line in int_file:
+						fields = line.split()
+						if fields[2] == 'None':
+							dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], fields[3], fields[4], fields[5], 1000000.0
+						else:
+							dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], int(fields[3]), fields[4], int(fields[5]), float(fields[7])
+						if (dca1, dca2) not in master_interactions:
+							master_interactions[(dca1, dca2)] = []
+						master_interactions[(dca1, dca2)].append((pdbname, (ch1, resid1), (ch2, resid2), dist))
+	
+	
+		for pdbname in sorted(list(set(pdbnames[0]) - set(intersection_pdbs))):
+			pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
+			if not os.path.exists(pdb_path):
+				if not os.path.exists(pdb_files_ext_path):
+					print("ERROR: PDB path not found")
+					exit(1)
+				download_pdb(pdbname, pdb_files_ext_path)
+			if not os.path.exists(pdb_path):
+				print("ERROR: PDB " + pdbname + " not found")
+				exit(1)
+	
+	
+			pfam_in_pdb_1 = matches.calculate_matches(pdbname, inpfam1, '', '', pdb_pfam_filename)
+	
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb_1, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			main_backmap_table_1[pdbname] = backmap_table
+	
+			int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb_1, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=True)	
+			interaction_filenames_1 |= int_filenames
+	
+			for int_filename in int_filenames:
+				with open(int_filename) as int_file:
+					for line in int_file:
+						fields = line.split()
+						if fields[2] == 'None':
+							dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], fields[3], fields[4], fields[5], 1000000.0
+						else:
+							dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], int(fields[3]), fields[4], int(fields[5]), float(fields[7])
+						if (dca1, dca2) not in master_interactions_1:
+							master_interactions_1[(dca1, dca2)] = []
+						master_interactions_1[(dca1, dca2)].append((pdbname, (ch1, resid1), (ch2, resid2), dist))
+	
+	
+		offset = sorted(list(master_interactions.keys()))[-1][0]
+		for pdbname in sorted(list(set(pdbnames[1]) - set(intersection_pdbs))):
+			pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
+			if not os.path.exists(pdb_path):
+				if not os.path.exists(pdb_files_ext_path):
+					print("ERROR: PDB path not found")
+					exit(1)
+				download_pdb(pdbname, pdb_files_ext_path)
+			if not os.path.exists(pdb_path):
+				print("ERROR: PDB " + pdbname + " not found")
+				exit(1)
+	
+	
+			pfam_in_pdb_2 = matches.calculate_matches(pdbname, inpfam2, '', '', pdb_pfam_filename)
+	
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb_2, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			main_backmap_table_2[pdbname] = backmap_table
+	
+	
+			int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb_2, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=True)	
+			interaction_filenames_2 |= int_filenames
+	
+			for int_filename in int_filenames:
+				with open(int_filename) as int_file:
+					for line in int_file:
+						fields = line.split()
+						if fields[2] == 'None':
+							dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], fields[3], fields[4], fields[5], 1000000.0
+						else:
+							dca1, dca2, ch1, resid1, ch2, resid2, dist = int(fields[0]), int(fields[1]), fields[2], int(fields[3]), fields[4], int(fields[5]), float(fields[7])
+						if (dca1+offset, dca2+offset) not in master_interactions_2:
+							master_interactions_2[(dca1+offset, dca2+offset)] = []
+						master_interactions_2[(dca1+offset, dca2+offset)].append((pdbname, (ch1, resid1), (ch2, resid2), dist))
+			
+		interaction_dist_thr = 8.0
+		interaction_list = []
+		interaction_strength = []
+		Ninter = len(master_interactions[list(master_interactions.keys())[0]])
+		for dca1, dca2 in sorted(list(master_interactions.keys())):
+			for i in range(Ninter):
+				if master_interactions[(dca1, dca2)][i][3] <= interaction_dist_thr:
+					if (dca1, dca2) not in interaction_list:
+						interaction_list.append((dca1, dca2))
+						interaction_strength.append(1/Ninter)
+					else:
+						interaction_strength[-1] += 1/Ninter
+		
+		print(interaction_list)
+		print(interaction_strength)
+	
+		interaction_list_1 = []
+		interaction_strength_1 = []
+		Ninter = len(master_interactions_1[list(master_interactions_1.keys())[0]])
+		vertices_1 = sorted(list(set([x[0] for x in interaction_list])))
+		with open(results_folder + "{0}_distances.txt".format(inpfam1), "w") as f:
+			for idca1, dca1 in enumerate(vertices_1):
+				for idca2 in range(idca1+1, len(vertices_1)):
+					dca2 = vertices_1[idca2]
+					f.write("{0}\t{1}\t{2}\t{3}\t".format(dca1, dca2, interaction_strength[idca1], interaction_strength[idca2]))
+					d1s = []
+					for i in range(Ninter):
+						d1s.append(master_interactions_1[(dca1, dca2)][i][3])
+						f.write("{0}\t".format(master_interactions_1[(dca1, dca2)][i][3]))
+					distances1_labels.append((dca1, dca2))
+					distances1.append(d1s)
+					f.write("\n")
+	
+	
+		Ninter = len(master_interactions_2[list(master_interactions_2.keys())[0]])
+		vertices_2 = sorted(list(set([x[1] for x in interaction_list])))
+		with open(results_folder + "{0}_distances.txt".format(inpfam2), "w") as f:
+			for idca1, dca1 in enumerate(vertices_2):
+				for idca2 in range(idca1+1, len(vertices_2)):
+					dca2 = vertices_2[idca2]
+					f.write("{0}\t{1}\t{2}\t{3}\t".format(dca1, dca2, interaction_strength[idca1], interaction_strength[idca2]))
+					d2s = []
+					for i in range(Ninter):
+						d2s.append(master_interactions_2[(dca1, dca2)][i][3])
+						f.write("{0}\t".format(master_interactions_2[(dca1, dca2)][i][3]))
+					distances2_labels.append((dca1, dca2))
+					distances2.append(d2s)
+					f.write("\n")
+	else:
+		with open(dist1_filename) as f:
+			for line in f:
+				if not line:
+					continue
+				fields = line.split()
+				dca1, dca2, int_str1, int_str2 = int(fields[0]), int(fields[1]), float(fields[2]), float(fields[3])
+				distances1_labels.append((dca1, dca2))
+				distances1.append([float(x) for x in fields[4:]])
+		with open(dist2_filename) as f:
+			for line in f:
+				if not line:
+					continue
+				fields = line.split()
+				dca1, dca2, int_str1, int_str2 = int(fields[0]), int(fields[1]), float(fields[2]), float(fields[3])
+				distances2_labels.append((dca1, dca2))
+				distances2.append([float(x) for x in fields[4:]])
+	
+	distances1 = np.array(distances1)
+	distances2 = np.array(distances2)
+
+	print(distances1)
+	for cutoff_d in np.arange(0.0, 20.5, 0.5):
+#		print(cutoff_d)
+#		print(distances1 < cutoff_d)
+		d1bool = (distances1 < cutoff_d)*1
+		strengths1 = d1bool.sum(axis=1)
+		conn_comps1, vertices = calculate_connected_components(distances1_labels, strengths1)
+		largest_size = sorted(conn_comps1, key= lambda x: len(x))[0]
+		print(inpfam1, cutoff_d, len(largest_size), largest_size)
+
+		d2bool = (distances2 < cutoff_d)*1
+		strengths2 = d2bool.sum(axis=1)
+		conn_comps2, vertices = calculate_connected_components(distances2_labels, strengths2)
+		largest_size = sorted(conn_comps2, key= lambda x: len(x))[0]
+		print(inpfam2, cutoff_d, len(largest_size), largest_size)
+
+	exit(1)	
+
+	print("GRAPH A")	
+	print(vertices_1)
+	print(interaction_list_1)
+	print(interaction_strength_1)
+
+	number_of_first_vertices = 10
+	vertices = sorted(list(set([x[0] for x in interaction_list]) | set([x[1] for x in interaction_list])))
+	pair_list = sorted(list(zip(interaction_list_1, interaction_strength_1)), key= lambda x : x[1])
+	drawn_vertices = []
+	for x in pair_list:
+		for e in x[0]:
+			if e not in drawn_vertices and len(drawn_vertices) < 10:
+				drawn_vertices.append(e)
+		if len(drawn_vertices) == 10:
+			break
+
+	draw_interaction_list_1 = []
+	draw_interaction_strength_1 = []
+	draw_edges_1 = []
+	for i, x in enumerate(interaction_list_1):
+		if not(x[0] in drawn_vertices and x[1] in drawn_vertices):
+			continue
+		draw_interaction_list_1.append(x)
+		draw_interaction_strength_1.append(interaction_strength_1[i])
+		draw_edges_1.append((x[0], x[1], {'weight' : int(1+10*interaction_strength_1[i])}))
+	G = nx.Graph()
+	G.add_edges_from(draw_edges_1)
+	plt.subplot(111)
+	w = [G[u][v]['weight'] for u,v in G.edges]
+	print("WIDTHS")
+	print(w)
+	nx.draw(G, with_labels=True, font_weight='bold', width=w)
+	plt.savefig('prova.png')
+
+	recs = []	
+	with open(dca_filename) as dca_file:
+		for line in dca_file:
+			if not line or line.strip().startswith("#"):
+				continue
+			fields = line.split()
+			recs.append((int(fields[0]), int(fields[1]), float(fields[2])))
+#			print(dca_filename, int(fields[0]), int(fields[1]), float(fields[2]))
+	recs = sorted(recs, key= lambda x: -x[2])
+
+
+#	print("PREDICTION A:")
+	prediction_vertices_1 = []
+	for dca1, dca2, score in recs:
+		if dca1 <= offset and dca2 > offset:
+			if dca1 not in prediction_vertices_1:
+				prediction_vertices_1.append(dca1)
+			if len(prediction_vertices_1) == 10:
+				break
+	draw_interaction_list_1 = []
+	draw_interaction_strength_1 = []
+	draw_edges_1 = []
+	for i, x in enumerate(interaction_list_1):
+		if not(x[0] in prediction_vertices_1 and x[1] in prediction_vertices_1):
+			continue
+		draw_interaction_list_1.append(x)
+		draw_interaction_strength_1.append(interaction_strength_1[i])
+		draw_edges_1.append((x[0], x[1], {'weight' : int(1+10*interaction_strength_1[i])}))
+
+	G = nx.Graph()
+	G.add_edges_from(draw_edges_1)
+	plt.clf()
+	plt.subplot(111)
+	w = [G[u][v]['weight'] for u,v in G.edges]
+	print("WIDTHS")
+	print(w)
+	nx.draw(G, with_labels=True, font_weight='bold', width=w)
+	plt.savefig('prova_pred.png')
+	exit(1)
+
+
+	interaction_list_2 = []
+	interaction_strength_2 = []
+	Ninter = len(master_interactions_2[list(master_interactions_2.keys())[0]])
+	vertices_2 = sorted(list(set([x[1] for x in interaction_list])))
+	for idca1, dca1 in enumerate(vertices_2):
+		for dca2 in vertices_2[idca1+1:]:
+			for i in range(Ninter):
+				if master_interactions_2[(dca1, dca2)][i][3] <= interaction_dist_thr:
+					if (dca1, dca2) not in interaction_list_2:
+						interaction_list_2.append((dca1, dca2))
+						interaction_strength_2.append(1/Ninter)
+					else:
+						interaction_strength_2[-1] += 1/Ninter
+
+	print("GRAPH B")
+	print(vertices_2)	
+	print(interaction_list_2)
+	print(interaction_strength_2)
+
 	
 
-
+	#for pdbname in 
 
 	exit(1)
 
@@ -315,7 +612,7 @@ def main_graphmodel(options):
 				print("ERROR: PDB " + pdbname + " not found")
 				exit(1)
 
-			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type=msa_type, force_download=force_download)
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
 			for line in backmap_table:
 				unique_pfam_acc, pdb_corresp, unp_corresp = line
 				pfam_acc = unique_pfam_acc.split('_')[0]

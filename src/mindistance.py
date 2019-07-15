@@ -68,6 +68,7 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_fol
 					continue
 				fields = line.split()
 				recs.append((int(fields[0]), int(fields[1]), float(fields[2])))
+#				print(dca_filename, int(fields[0]), int(fields[1]), float(fields[2]))
 		recs = sorted(recs, key= lambda x: -x[2])
 	else:
 		out_filename = results_folder + "/{0}_{1}_correlation.txt".format(inpfam1, inpfam2)

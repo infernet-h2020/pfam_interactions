@@ -66,7 +66,7 @@ def parallel_submission_routine(data):
 			print("ERROR: PDB " + pdbname + " not found")
 			exit(1)
 
-		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type=msa_type, force_download=force_download)
+		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
 		main_backmap_table[pdbname] = backmap_table
 
 		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter)	
@@ -145,8 +145,9 @@ def main_mindistance(options):
 				text2 = subprocess.run(["zgrep {0} {1} | awk '{{print substr($1,1,4)}}'".format(inpfam2, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
 				pdbnames1 = [x.strip().lower() for x in text1 if x.strip()]
 				pdbnames2 = [x.strip().lower() for x in text2 if x.strip()]
-				#print(pdbnames1, pdbnames2)
+#				print(pdbnames1, pdbnames2)
 				mind_pdbs = sorted(list(set(pdbnames1) & set(pdbnames2)))
+#				print(mind_pdbs)
 		mind_pdbs = sorted(mind_pdbs)
 	else:
 		if inpfam:
@@ -209,7 +210,7 @@ def main_mindistance(options):
 				print("ERROR: PDB " + pdbname + " not found")
 				exit(1)
 
-			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type=msa_type, force_download=force_download)
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
 			for line in backmap_table:
 				unique_pfam_acc, pdb_corresp, unp_corresp = line
 				pfam_acc = unique_pfam_acc.split('_')[0]

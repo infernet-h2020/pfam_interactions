@@ -7,6 +7,8 @@ import main_accessibility
 import main_interactions
 import main_mindistance
 import main_backmap
+import main_graphmodel
+import interactions
 from support import *
 
 def main_parser():
@@ -28,6 +30,8 @@ def main_parser():
 	parser.add_argument('-fd', '--force_download', nargs='?')
 	parser.add_argument('-mind', '--min_dist', nargs='?')
 	parser.add_argument('-dca', '--dca_filename', nargs='?')
+	parser.add_argument('-distout', '--dist_filename', nargs='?')
+	parser.add_argument('--only_distances', action='store_const', const='True', default='False')
 	parser.add_argument('-intra', '--only_intra', action='store_const', const='True', default='False')
 	parser.add_argument('-inter', '--only_inter', action='store_const', const='True', default='False')
 	parser.add_argument('-v', '--pfam_version', nargs='?', default='32')
@@ -37,6 +41,7 @@ def main_parser():
 	parser.add_argument('--reset_cache', action='store_const', const='True', default='False')
 	parser.add_argument('-no_cache', '--no_cache', action='store_const', const='True', default='False')
 	parser.add_argument('-np', '--nprocesses', nargs='?')
+	parser.add_argument('-graph', '--graphmodel', action='store_const', const='True', default='False')
 
 	# Default values for optional arguments
 	parser.set_defaults(pdbname = 'None')
@@ -51,6 +56,7 @@ def main_parser():
 	parser.set_defaults(force_download = 'False')
 	parser.set_defaults(min_dist = 'None')
 	parser.set_defaults(dca_filename = 'None')
+	parser.set_defaults(dist_filename = 'None')
 	parser.set_defaults(nprocesses = '1')
 	
 
@@ -63,6 +69,10 @@ def main_parser():
 	if options['reset_cache']:
 		subprocess.run("rm", "-f", "{0}/*".format(options['cache']))
 		subprocess.run("rm", "-f", "{0}/.*".format(options['cache']))
+	if options['dist_filename']:
+		all_dist = interactions.compute_distances(options['pdbname'], options['dist_filename'], ch1=options['inch1'], ch2=options['inch2'])
+		if options['only_distances']:
+			exit(1)
 
 
 	pfam_msa_types = {'uniprot' : 'uniprot', 'full' : 'full', 'rp75' : 'rp75'}
@@ -70,6 +80,9 @@ def main_parser():
 		print("ERROR: Pfam MSA type " + options['pfam_msa_type'] + " not defined")
 		exit(1)
 	options['msa_type'] = pfam_msa_types[options['pfam_msa_type']]
+
+	if options['dist_filename']:
+		all_dist = main_interactions.main_interactions(options)
 
 	if options['output_path']:
 		if os.path.exists(options['output_path']):
@@ -95,6 +108,8 @@ def main_parser():
 		main_accessibility.main_accessibility(options)
 	elif type(options['min_dist']) != type(None) or options['find_structures'] == True:
 		main_mindistance.main_mindistance(options)
+	elif options['graphmodel'] == True:
+		main_graphmodel.main_graphmodel(options)
 	else:
 		main_interactions.main_interactions(options)
 
