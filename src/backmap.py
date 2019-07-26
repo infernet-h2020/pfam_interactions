@@ -140,6 +140,10 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 
 	parser = Bio.PDB.PDBParser(QUIET=True)
 	structure = parser.get_structure(pdbname, pdb_path)
+	if not structure:
+		print("BIOPYTHON PARSER DID NOT PARSE")
+		return None
+
 #	print("PDB", pdb_path, pdbname)
 
 	valid_residues = {}

@@ -42,6 +42,7 @@ def main_parser():
 	parser.add_argument('-no_cache', '--no_cache', action='store_const', const='True', default='False')
 	parser.add_argument('-np', '--nprocesses', nargs='?')
 	parser.add_argument('-graph', '--graphmodel', action='store_const', const='True', default='False')
+	parser.add_argument('-compr', '--compress_distmx', action='store_const', const='True', default='False')
 
 	# Default values for optional arguments
 	parser.set_defaults(pdbname = 'None')

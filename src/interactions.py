@@ -1,7 +1,7 @@
 from support import *
 
 
-def compute_distances(pdbname, pdb_path, output_filename, ch1='', ch2=''):
+def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch1='', ch2='', compress_distmtx=False):
 	distance = []
 	sc_distance = []
 	CA_distance = []
@@ -9,8 +9,8 @@ def compute_distances(pdbname, pdb_path, output_filename, ch1='', ch2=''):
 	parser = Bio.PDB.PDBParser(QUIET=True)
 	structure = parser.get_structure(pdbname, pdb_path)
 
+	chain_pairs = {}
 	with open(output_filename, 'w') as output_file:
-		distance_threshold = 30
 		bb_names = {'N', 'O', 'OXT', 'C', 'CA'}
 		chain_pairs = []
 		for model in structure:
@@ -24,6 +24,7 @@ def compute_distances(pdbname, pdb_path, output_filename, ch1='', ch2=''):
 						continue
 #					if (ch1id, ch2id) in chain_pairs or (ch2id, ch1id) in chain_pairs:
 #						continue
+					d = []
 					for res1 in chain1:
 						if res1.id[0].strip():
 							continue
@@ -43,6 +44,10 @@ def compute_distances(pdbname, pdb_path, output_filename, ch1='', ch2=''):
 								sc_distance.append(CA_CA_d)
 								distance.append(CA_CA_d)
 								output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], CA_CA_d, CA_CA_d, CA_CA_d))
+								if compress_distmtx:
+									new_tot_dist[((ch1id, res1.id[1]), (ch2id, res2.id[1]))] = "MAX"
+								else:
+									new_tot_dist[((ch1id, res1.id[1]), (ch2id, res2.id[1]))] = (distance[-1], sc_distance[-1], CA_distance[-1])
 								continue
 
 							mindist = 100000
@@ -61,25 +66,79 @@ def compute_distances(pdbname, pdb_path, output_filename, ch1='', ch2=''):
 							distance.append(mindist)
 							sc_distance.append(mindist_sc)
 							new_tot_dist[((ch1id, res1.id[1]), (ch2id, res2.id[1]))] = (distance[-1], sc_distance[-1], CA_distance[-1])
-
 							output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], mindist, mindist_sc, CA_CA_d))
 			break	# consider only first model
 
 	return new_tot_dist
 
 
-def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=False, allow_overwrite_dist=True):
+def compress_distance_matrix(dist_dict, distance_threshold):
+	keys = sorted(list(set([k[0] for k in dist_dict])))
+	linear_d = []
+	set_list = []
+	for ik1, k1 in enumerate(keys):
+		for ik2, k2 in enumerate(keys):
+			if dist_dict[(k1, k2)] != "MAX" and dist_dict[(k1, k2)][2] <= distance_threshold and {k1, k2} not in set_list:
+				linear_d.append(((k1, k2), dist_dict[(k1, k2)]))
+				set_list.append({k1, k2})
+	N = len(lineard)
+	np_lind = np.zeros(N, dtype=(float, 3))
+	np_lind_idx = np.zeros(N, dtype=(int, 2))
+	for i, x in enumerate(linear_d):
+		a, b = x
+		np_lind[i] = b
+		idx1 = keys.index(a[0])
+		idx2 = keys.index(a[1])
+		np_lind_idx[i] = (idx1, idx2)
+	return (np_lind, np_lind_idx, keys)
+
+
+def decompress_distance_matrix(compressed_dmx):
+	np_lind, np_lind_idx, keys = compressed_dmx
+	np_lind_idx_list = list(np_lind_idx.reshape(np_lind_idx.size))
+	N = len(keys)
+	dist_dict = {}
+	for ik1, k1 in enumerate(keys):
+		for ik2, k2 in enumerate(keys):
+			if (k1, k2) in np_lind_idx_list:
+				idx = np_lind_idx_list.index((k1, k2))
+				dist_dict[(k1, k2)] = np_lind[idx]
+				dist_dict[(k2, k1)] = np_lind[idx]
+			elif (k2, k1) in np_lind_idx_list:
+				idx = np_lind_idx_list.index((k2, k1))
+				dist_dict[(k1, k2)] = np_lind[idx]
+				dist_dict[(k2, k1)] = np_lind[idx]
+			else:
+				dist_dict[(k1, k2)] = "MAX"
+				dist_dict[(k2, k1)] = "MAX"
+	return dist_dict
+
+
+def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=False, allow_overwrite_dist=True, compress_distmx=False):
 	print("Interactions:")
 	t = time.time()
 	bb_names = {'N', 'O', 'OXT', 'C'}
-	distance_threshold = 30
+	distance_threshold = 20
 	print("\tcalculating distances\t", end='', flush=True)
 	pickle_filename = cache_folder + "." + pdbname + "_distances.pkl"
+	pickle_compr_filename = cache_folder + "." + pdbname + "_compressed_distances.pkl"
+
+	if ((not compress_distmx) and (not os.path.exists(pickle_filename))) or (compress_distmx and (not os.path.exists(pickle_compr_filename))):
+		output_filename = results_folder + pdbname + "_distances.txt"
+		tot_dist = compute_distances(pdbname, pdb_path, output_filename, compress_distmx)
+		if compress_distmx:
+			distmx_pkl = compress_distance_matrix(tot_dist, distance_threshold)
+			pickle.dump(distmx_pkl, open(pickle_compr_filename, 'wb'))
+		else:
+			pickle.dump(tot_dist, open(pickle_filename, 'wb'))
 
 	proto_residues_linear = []
 	unmapped_residues_linear = []
-	if os.path.exists(pickle_filename):
-		tot_dist = pickle.load(open(pickle_filename, 'rb'))
+	if ((not compress_distmx) and os.path.exists(pickle_filename)) or (compress_distmx and os.path.exists(pickle_compr_filename)):
+		if compress_distmx:
+			tot_dist = decompress_distance_matrix(pickle.load(open(pickle_compr_filename, 'rb')))
+		else:
+			tot_dist = pickle.load(open(pickle_filename, 'rb'))
 		distance = []
 		sc_distance = []
 		CA_distance = []
@@ -88,123 +147,25 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 			ch1, r1 = x1
 			ch2, r2 = x2
 			if ch1 in allowed_residues and r1 in allowed_residues[ch1] and ch2 in allowed_residues and r2 in allowed_residues[ch2]:
-				distance.append(tot_dist[(x1, x2)][0])
-				sc_distance.append(tot_dist[(x1, x2)][1])
-				CA_distance.append(tot_dist[(x1, x2)][2])
+				if tot_dist[(x1, x2)] == "MAX":
+					distance.append(9999)
+					sc_distance.append(9999)
+					CA_distance.append(9999)
+				else:
+					distance.append(tot_dist[(x1, x2)][0])
+					sc_distance.append(tot_dist[(x1, x2)][1])
+					CA_distance.append(tot_dist[(x1, x2)][2])
 				if (ch1, r1) not in proto_residues_linear:
 					proto_residues_linear.append((ch1, r1))
-				if (ch2, r2) not in proto_residues_linear:
-					proto_residues_linear.append((ch2, r2))
-		proto_residues_linear = sorted(proto_residues_linear)
-
-		allowed_residues_linear = []
-		for ch in allowed_residues:
-			for r in allowed_residues[ch]:
-				allowed_residues_linear.append((ch, r))
-
-		unmapped_residues_linear = sorted(list(set(allowed_residues_linear) - set(proto_residues_linear)))
 
 		residues_linear = proto_residues_linear
-#		N = len(residues_linear)
-#		distance = np.array(distance).reshape((N, N))
-#		sc_distance = np.array(sc_distance).reshape((N, N))
-#		CA_distance = np.array(CA_distance).reshape((N, N))
-
-#		N, residues_linear, distance, sc_distance, CA_distance = pickle.load(open(pickle_filename, 'rb'))
 		print("(pickled!)\t", end='', flush=True)
-
-
-	if unmapped_residues_linear:
-		print("Unmapped residues are present:", unmapped_residues_linear)
-	if not os.path.exists(pickle_filename):
-		print("Pickle not found")
-
-	new_tot_dist = {}
-	if (not os.path.exists(pickle_filename)) or unmapped_residues_linear:
-		residues_linear = []
-		distance = []
-		sc_distance = []
-		CA_distance = []
-		parser = Bio.PDB.PDBParser(QUIET=True)
-		structure = parser.get_structure(pdbname, pdb_path)
-
-		for model in structure:
-			for chain1 in allowed_residues:
-				c1 = model[chain1]
-				for r1 in c1:
-					resid1 = r1.id[1]
-					if r1.id[2].strip():
-						continue
-					if resid1 not in allowed_residues[chain1]:
-						continue
-					residues_linear.append((chain1, resid1))
-					for chain2 in allowed_residues:
-						c2 = model[chain2]
-						if self_inter and chain2 != chain1:
-							distance += [0]*len(allowed_residues[chain2])
-							sc_distance += [0]*len(allowed_residues[chain2])
-							CA_distance += [0]*len(allowed_residues[chain2])
-							for r2 in c2:
-								resid2 = r2.id[1]
-								if r2.id[2].strip() or resid2 not in allowed_residues[chain2]:
-									continue
-								new_tot_dist[((chain1, resid1), (chain2, resid2))] = (0, 0, 0)
-							continue
-						for r2 in c2:
-							resid2 = r2.id[1]
-							if r2.id[2].strip():
-								continue
-							if resid2 not in allowed_residues[chain2]:
-								continue
-							if (chain1 == chain2 and resid1 == resid2) or (inch1 and ({chain1, chain2} != {inch1, inch2})):
-								distance.append(0)
-								sc_distance.append(0)
-								CA_distance.append(0)
-								new_tot_dist[((chain1, resid1), (chain2, resid2))] = (0, 0, 0)
-								continue
-							if (chain1, resid1) in proto_residues_linear and (chain2, resid2) in proto_residues_linear:
-								distance.append(tot_dist[((chain1, resid1), (chain2, resid2))][0])
-								sc_distance.append(tot_dist[((chain1, resid1), (chain2, resid2))][1])
-								CA_distance.append(tot_dist[((chain1, resid1), (chain2, resid2))][2])
-								new_tot_dist[((chain1, resid1), (chain2, resid2))] = (distance[-1], sc_distance[-1], CA_distance[-1])
-								continue
-							CA_CA_d = np.linalg.norm(r1['CA'].get_vector() - r2['CA'].get_vector())
-							CA_distance.append(CA_CA_d)
-							if CA_CA_d > distance_threshold:
-								sc_distance.append(CA_CA_d)
-								distance.append(CA_CA_d)
-								new_tot_dist[((chain1, resid1), (chain2, resid2))] = (CA_CA_d, CA_CA_d, CA_CA_d)
-								continue
-							mindist = 100000
-							mindist_sc = 100000
-							for a1 in r1:
-								for a2 in r2:
-									d = np.linalg.norm(a1.get_vector() - a2.get_vector())
-									if d < mindist:
-										mindist = d
-									if d < mindist_sc and (a1.id not in bb_names) and (a2.id not in bb_names):
-										mindist_sc = d
-							distance.append(mindist)
-							sc_distance.append(mindist_sc)
-							new_tot_dist[((chain1, resid1), (chain2, resid2))] = (mindist, mindist_sc, CA_CA_d)
-			break	# consider only first model
-
 
 	N = len(residues_linear)
 
 	distance = np.array(distance).reshape((N, N))
 	sc_distance = np.array(sc_distance).reshape((N, N))
 	CA_distance = np.array(CA_distance).reshape((N, N))
-
-#	if not unmapped_residues_linear:
-#		residues_linear = proto_residues_linear
-#		N = len(residues_linear)
-
-	if (not os.path.exists(pickle_filename)) or (len(unmapped_residues_linear)>0 and allow_overwrite_dist):
-		if unmapped_residues_linear:
-			for x in tot_dist:
-				new_tot_dist[x] = tot_dist[x]
-		pickle.dump(new_tot_dist, open(pickle_filename, 'wb'))
 
 	tf = time.time()
 	print(time.strftime("%H:%M:%S", time.gmtime(tf-t)))
@@ -292,8 +253,11 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 								uniprot_resids2 = "".join([x[0] + "_" + str(x[1]) + "_" + uniprot_restypes[x[0]][x[1]] + "," for x in pdb_uniprot_resids[(ac2, ar2)]])[:-1]
 							except:
 								uniprot_resids2 = "None"
-	
-							interactions_file.write("{0:6}\t{1:6}\t{2:4}\t{3:4}\t{4:4}\t{5:4}\t{6:12.6f}\t{7:12.6f}\t{8:12.6f}\t{9}\t{10}\n".format(i+1, j+1+offset, ac1, ar1, ac2, ar2, val, sc_val, CA_val, uniprot_resids1, uniprot_resids2))
+
+							if val == 9999:
+								interactions_file.write("{0:6}\t{1:6}\t{2:4}\t{3:4}\t{4:4}\t{5:4}\tMAX\tMAX\tMAX\t{6}\t{7}\n".format(i+1, j+1+offset, ac1, ar1, ac2, ar2, uniprot_resids1, uniprot_resids2))
+							else:
+								interactions_file.write("{0:6}\t{1:6}\t{2:4}\t{3:4}\t{4:4}\t{5:4}\t{6:12.6f}\t{7:12.6f}\t{8:12.6f}\t{9}\t{10}\n".format(i+1, j+1+offset, ac1, ar1, ac2, ar2, val, sc_val, CA_val, uniprot_resids1, uniprot_resids2))
 			if (pfam_acc1, pfam_acc2) not in multiplicities:
 				multiplicities[(pfam_acc1, pfam_acc2)] = []
 			if (cmult1, cmult2) not in multiplicities[(pfam_acc1, pfam_acc2)]:

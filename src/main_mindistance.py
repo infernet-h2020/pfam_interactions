@@ -46,6 +46,7 @@ def parallel_submission_routine(data):
 	mind_pdbs, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type, force_download, pdb_files_ext_path, inpfam, inpfam1, inpfam2, inch1, inch2, pdb_pfam_filename, results_folder, cache_folder, self_inter = data
 	main_backmap_table = {}
 	interaction_filenames = set()
+	failed_pdbs = set()
 	for pdbname in mind_pdbs:
 		print("\nPDB: ", pdbname, '-'*150)
 		pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
@@ -66,10 +67,14 @@ def parallel_submission_routine(data):
 			print("ERROR: PDB " + pdbname + " not found")
 			exit(1)
 
-		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+		bundle = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+		if not bundle:
+			failed_pdbs.add(pdbname)
+			continue
+		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
 		main_backmap_table[pdbname] = backmap_table
 
-		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter)	
+		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter, compress_distmx=compress_distmx)
 		interaction_filenames |= int_filenames
 	return interaction_filenames, main_backmap_table
 
@@ -98,6 +103,7 @@ def main_mindistance(options):
 	check_architecture = options['check_architecture']
 	version = options['pfam_version']
 	nprocs = options['nprocesses']
+	compress_distmx = options['compress_distmx']
 	inch1 = ''
 	inch2 = ''
 

@@ -10,21 +10,6 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_fol
 		for ch1 in chains[inpfam1]:
 			for ch2 in chains[inpfam2]:
 				pairs.append((pdbname, ch1, ch2))
-#		print("grep {0} {1} | grep {2} | grep {3} | awk '{{if ($1==\"{0}\") {{print \"{3}\", $4, $5}} else {{print \"{3}\", $5, $4}} }}'".format(inpfam1, pfam_pfam_filename, inpfam2, pdbname))
-#		text += subprocess.run(["grep {0} {1} | grep {2} | grep {3} | awk '{{if ($1==\"{0}\") {{print \"{3}\", $4, $5}} else {{print \"{3}\", $5, $4}} }}'".format(inpfam1, pfam_pfam_filename, inpfam2, pdbname)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
-#		print("grep {0} {1} | grep {2} | grep {3} | awk '{{if ($1==\"{0}\") {{print \"{3}\", $4, $5}} else {{print \"{3}\", $5, $4}} }}'".format(inpfam1, pfam_pfam_filename, inpfam2, pdbname))
-#		subprocess.run(["grep {0} {1} | grep {2} | grep {3}".format(inpfam1, pfam_pfam_filename, inpfam2, pdbname)], shell=True)
-
-#	for line in text:
-#		if not line:
-#			continue
-#		pdb, p1, p2 = line.strip().split()
-#		if only_intra and p1 == p2:
-#			pairs.append((pdb, p1, p2))
-#		elif only_inter and p1 != p2:
-#			pairs.append((pdb, p1, p2))
-#		elif not (only_intra or only_inter):
-#			pairs.append((pdb, p1, p2))
 
 	filenames_list = []
 	for pair in pairs:
@@ -35,19 +20,11 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_fol
 				continue
 			filenames_list.append(line.strip())
 	
-#	print("FILES", filenames_list)
-
-#	if with_offset:
 	one_file = open(filenames_list[0])
 	text = [l for l in one_file.readlines() if l.strip()]
 	if with_offset:
 		offset = int(text[-1].split()[0])
 	totlength = int(text[-1].split()[1])
-#	with open(filenames_list[0]) as one_file:
-#		for line in one_file:
-#			if not line:
-#				continue
-#			offset = int(line.split()[0])
 
 	if only_intra:
 		warner = " (only intra-chain)"
@@ -85,13 +62,19 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_fol
 			for line in res_file:
 				fields = line.split()
 				if fields[6] != "None":
-					distcomp[nf, int(fields[0])-1, int(fields[1])-1] = float(fields[6])
+					if fields[6] == "MAX":
+						distcomp[nf, int(fields[0])-1, int(fields[1])-1] = float(9999)
+					else:
+						distcomp[nf, int(fields[0])-1, int(fields[1])-1] = float(fields[6])
 					rdict[(res_filename, int(fields[0]), int(fields[1]))] = line.strip()
 					pfam_acc1, pfam_acc2, pdbname, chain_ann1, chain_ann2, _ = os.path.basename(res_filename).split("_")
 					pfam_acc_ann1, pfam_acc_ann2 = pfam_acc1 + "_" + chain_ann1, pfam_acc2 + "_" + chain_ann2
 					init1, end1 = [x[1][1] for x in main_backmap_table[pdbname] if x[0] == pfam_acc_ann1][0]
 					init2, end2 = [x[1][1] for x in main_backmap_table[pdbname] if x[0] == pfam_acc_ann2][0]
-					rdict2[(res_filename, int(fields[0]), int(fields[1]))] = (fields[6], pdbname+"_"+chain_ann1[0]+":"+str(init1)+"-"+str(end1)+"_"+chain_ann2[0]+":"+str(init2)+"-"+str(end2), fields[3], fields[5])
+					if fields[6] == "MAX":
+						rdict2[(res_filename, int(fields[0]), int(fields[1]))] = ("MAX", pdbname+"_"+chain_ann1[0]+":"+str(init1)+"-"+str(end1)+"_"+chain_ann2[0]+":"+str(init2)+"-"+str(end2), fields[3], fields[5])
+					else:
+						rdict2[(res_filename, int(fields[0]), int(fields[1]))] = (fields[6], pdbname+"_"+chain_ann1[0]+":"+str(init1)+"-"+str(end1)+"_"+chain_ann2[0]+":"+str(init2)+"-"+str(end2), fields[3], fields[5])
 
 
 	i = 0

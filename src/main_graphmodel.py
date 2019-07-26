@@ -68,7 +68,11 @@ def parallel_submission_routine(data):
 			print("ERROR: PDB " + pdbname + " not found")
 			exit(1)
 
-		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+		bundle = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+		if not bundle:
+			failed_pdbs.add(pdbname)
+			continue
+		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
 		main_backmap_table[pdbname] = backmap_table
 
 		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter)	
@@ -77,12 +81,12 @@ def parallel_submission_routine(data):
 
 
 def calculate_connected_components(edge_labels, edge_weights):
-	def rec(a,b,c):
-		for i in b[c]:
-			if i not in a:
-				a.append(i)
-				a = rec(a,b,c)
-		return a
+	def rec(ccomp, neigh, v):
+		for nv in neigh[v]:
+			if nv not in ccomp:
+				ccomp.append(nv)
+				ccomp = rec(ccomp, neigh, nv)
+		return ccomp
 
 
 	vertices = []
@@ -157,7 +161,7 @@ def main_graphmodel(options):
 		pdbtypes = [[], []]
 		for i, inpfam in enumerate([inpfam1, inpfam2]):
 			text.append(subprocess.run(["zgrep {0} {1} | awk '{{print substr($1,1,4)}}'".format(inpfam, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n'))
-			pdbnames.append(sorted(list(set([x.strip().lower() for x in text[i] if x.strip()])))[:10]) # DEBUG LEVA IL [:10] !!!!!!!!!!!!!!!!!!!!!!!!
+			pdbnames.append(sorted(list(set([x.strip().lower() for x in text[i] if x.strip()])))) # DEBUG LEVA IL [:10] !!!!!!!!!!!!!!!!!!!!!!!!
 			for pdbname in pdbnames[i]:
 				textu = subprocess.run(["zgrep {0} {1} | awk '{{print substr($4,1,7)}}'".format(pdbname.upper(), pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
 				textu = [x for x in textu if x.strip()]
@@ -228,8 +232,12 @@ def main_graphmodel(options):
 			if not os.path.exists(pdb_path):
 				print("ERROR: PDB " + pdbname + " not found")
 				exit(1)
-	
-			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+
+			bundle = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			if not bundle:
+				failed_pdbs.add(pdbname)
+				continue
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
 			main_backmap_table[pdbname] = backmap_table
 	
 			int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=False)	
@@ -262,7 +270,11 @@ def main_graphmodel(options):
 	
 			pfam_in_pdb_1 = matches.calculate_matches(pdbname, inpfam1, '', '', pdb_pfam_filename)
 	
-			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb_1, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			bundle = backmap.backmap_pfam(pfam_in_pdb_1, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			if not bundle:
+				failed_pdbs.add(pdbname)
+				continue
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
 			main_backmap_table_1[pdbname] = backmap_table
 	
 			int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb_1, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=True)	
@@ -296,7 +308,11 @@ def main_graphmodel(options):
 	
 			pfam_in_pdb_2 = matches.calculate_matches(pdbname, inpfam2, '', '', pdb_pfam_filename)
 	
-			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb_2, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			bundle = backmap.backmap_pfam(pfam_in_pdb_2, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			if not bundle:
+				failed_pdbs.add(pdbname)
+				continue
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
 			main_backmap_table_2[pdbname] = backmap_table
 	
 	
@@ -384,21 +400,22 @@ def main_graphmodel(options):
 	distances1 = np.array(distances1)
 	distances2 = np.array(distances2)
 
-	print(distances1)
 	for cutoff_d in np.arange(0.0, 20.5, 0.5):
 #		print(cutoff_d)
 #		print(distances1 < cutoff_d)
 		d1bool = (distances1 < cutoff_d)*1
 		strengths1 = d1bool.sum(axis=1)
 		conn_comps1, vertices = calculate_connected_components(distances1_labels, strengths1)
-		largest_size = sorted(conn_comps1, key= lambda x: len(x))[0]
+		largest_size = sorted(conn_comps1, key= lambda x: -len(x))[0]
 		print(inpfam1, cutoff_d, len(largest_size), largest_size)
+#		print(inpfam1, sorted(conn_comps1, key= lambda x: -len(x)))
 
 		d2bool = (distances2 < cutoff_d)*1
 		strengths2 = d2bool.sum(axis=1)
 		conn_comps2, vertices = calculate_connected_components(distances2_labels, strengths2)
-		largest_size = sorted(conn_comps2, key= lambda x: len(x))[0]
+		largest_size = sorted(conn_comps2, key= lambda x: -len(x))[0]
 		print(inpfam2, cutoff_d, len(largest_size), largest_size)
+#		print(inpfam2, sorted(conn_comps2, key= lambda x: -len(x)))
 
 	exit(1)	
 
@@ -612,7 +629,11 @@ def main_graphmodel(options):
 				print("ERROR: PDB " + pdbname + " not found")
 				exit(1)
 
-			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			bundle = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+			if not bundle:
+				failed_pdbs.add(pdbname)
+				continue
+			dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
 			for line in backmap_table:
 				unique_pfam_acc, pdb_corresp, unp_corresp = line
 				pfam_acc = unique_pfam_acc.split('_')[0]
