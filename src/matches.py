@@ -4,8 +4,7 @@ def calculate_matches(pdbname, inpfam, inpfam1, inpfam2, pdb_pfam_filename):
 	print("Matches:")
 	pfam_in_pdb = ['', '']
 	text = subprocess.run(['zgrep', '{0}'.format(pdbname.upper()), pdb_pfam_filename], stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
-#	print("grep {0} {1}".format(pdbname, pdb_pfam_filename))
-#	print(text)
+#	print("zgrep {0} {1}".format(pdbname.upper(), pdb_pfam_filename))
 	for line in text:
 		if not line:
 			continue

@@ -43,7 +43,7 @@ def calculate_hmm_seqID(seq1, seq2):
 	
 
 def parallel_submission_routine(data):
-	mind_pdbs, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type, force_download, pdb_files_ext_path, inpfam, inpfam1, inpfam2, inch1, inch2, pdb_pfam_filename, results_folder, cache_folder, self_inter = data
+	mind_pdbs, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type, force_download, pdb_files_ext_path, inpfam, inpfam1, inpfam2, inch1, inch2, pdb_pfam_filename, results_folder, cache_folder, self_inter, compress_distmx = data
 	main_backmap_table = {}
 	interaction_filenames = set()
 	failed_pdbs = set()
@@ -117,6 +117,7 @@ def main_mindistance(options):
 		if inpfam:
 			self_inter = True
 			text = subprocess.run(["zgrep {0} {1} | awk '{{print substr($1, 1, length($1)-1)}}'".format(inpfam, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+#			print("zgrep {0} {1} | awk '{{print substr($1, 1, length($1)-1)}}'".format(inpfam, pfam_pdbmap))
 			if check_architecture: 
 #				print("grep {0} {1} | awk '$1==$2{{print $3}}'".format(inpfam, pfam_pfam_filename))
 				textint = subprocess.run(["grep {0} {1} | awk '$1==$2{{print $3}}'".format(inpfam, pfam_pfam_filename)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
@@ -280,7 +281,7 @@ def main_mindistance(options):
 		supermind_pdbs[i%nprocs].append(mind_pdbs[i])
 	data = []
 	for i in range(nprocs):
-		data.append((supermind_pdbs[i], pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type, force_download, pdb_files_ext_path, inpfam, inpfam1, inpfam2, inch1, inch2, pdb_pfam_filename, results_folder, cache_folder, self_inter))
+		data.append((supermind_pdbs[i], pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type, force_download, pdb_files_ext_path, inpfam, inpfam1, inpfam2, inch1, inch2, pdb_pfam_filename, results_folder, cache_folder, self_inter, compress_distmx))
 
 	pool = multiprocessing.Pool(processes=nprocs)
 	pool_outputs = pool.map(parallel_submission_routine, data)

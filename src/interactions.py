@@ -78,34 +78,33 @@ def compress_distance_matrix(dist_dict, distance_threshold):
 	set_list = []
 	for ik1, k1 in enumerate(keys):
 		for ik2, k2 in enumerate(keys):
-			if dist_dict[(k1, k2)] != "MAX" and dist_dict[(k1, k2)][2] <= distance_threshold and {k1, k2} not in set_list:
+			if type(dist_dict[(k1, k2)]) != str and dist_dict[(k1, k2)][2] <= distance_threshold and {k1, k2} not in set_list:
 				linear_d.append(((k1, k2), dist_dict[(k1, k2)]))
 				set_list.append({k1, k2})
-	N = len(lineard)
+	N = len(linear_d)
 	np_lind = np.zeros(N, dtype=(float, 3))
-	np_lind_idx = np.zeros(N, dtype=(int, 2))
+	np_lind_idx = []
 	for i, x in enumerate(linear_d):
 		a, b = x
 		np_lind[i] = b
 		idx1 = keys.index(a[0])
 		idx2 = keys.index(a[1])
-		np_lind_idx[i] = (idx1, idx2)
+		np_lind_idx.append((idx1, idx2))
 	return (np_lind, np_lind_idx, keys)
 
 
 def decompress_distance_matrix(compressed_dmx):
 	np_lind, np_lind_idx, keys = compressed_dmx
-	np_lind_idx_list = list(np_lind_idx.reshape(np_lind_idx.size))
 	N = len(keys)
 	dist_dict = {}
 	for ik1, k1 in enumerate(keys):
 		for ik2, k2 in enumerate(keys):
-			if (k1, k2) in np_lind_idx_list:
-				idx = np_lind_idx_list.index((k1, k2))
+			if (ik1, ik2) in np_lind_idx:
+				idx = np_lind_idx.index((ik1, ik2))
 				dist_dict[(k1, k2)] = np_lind[idx]
 				dist_dict[(k2, k1)] = np_lind[idx]
-			elif (k2, k1) in np_lind_idx_list:
-				idx = np_lind_idx_list.index((k2, k1))
+			elif (ik2, ik1) in np_lind_idx:
+				idx = np_lind_idx.index((ik2, ik1))
 				dist_dict[(k1, k2)] = np_lind[idx]
 				dist_dict[(k2, k1)] = np_lind[idx]
 			else:
@@ -147,7 +146,7 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 			ch1, r1 = x1
 			ch2, r2 = x2
 			if ch1 in allowed_residues and r1 in allowed_residues[ch1] and ch2 in allowed_residues and r2 in allowed_residues[ch2]:
-				if tot_dist[(x1, x2)] == "MAX":
+				if type(tot_dist[(x1, x2)]) == str and tot_dist[(x1, x2)] == "MAX":
 					distance.append(9999)
 					sc_distance.append(9999)
 					CA_distance.append(9999)
