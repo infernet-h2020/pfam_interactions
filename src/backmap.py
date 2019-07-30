@@ -42,12 +42,13 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 
 	# Read index
 	pdb_uniprot_index = {}
+	src_path = os.path.dirname(os.path.abspath(__file__)) + '/'
 	with open(pdb_uniprot_res_index_filename) as index_file:
 		for line in index_file:
 			if not line.strip():
 				continue
 			fields = line.split()
-			pdb_uniprot_index[fields[0]] = (fields[1], fields[2])
+			pdb_uniprot_index[fields[0]] = (src_path + fields[1], fields[2])
 
 
 	print("Backmap: ")
@@ -72,6 +73,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 
 	pickle_filename = cache_folder + "." + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + '_v' + str(version) + ".pkl"
 	backmap_filename = results_folder + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + '_v' + str(version) + ".txt"
+	print(pickle_filename, backmap_filename)
 	if os.path.exists(pickle_filename):
 		bundle = pickle.load(open(pickle_filename, 'rb'))
 		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle

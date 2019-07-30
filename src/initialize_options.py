@@ -1,6 +1,6 @@
 from support import *
 
-def initialize_options(version):
+def initialize_options(version, rel_path=False):
 	if not version or version == 'None':
 		print("ERROR: specify the version of the Pfam database used to create the DCA predictions (it's important!)")
 		exit(1)
@@ -8,7 +8,11 @@ def initialize_options(version):
 	print("\nPfam database version: {0}\n".format(version))
 
 	options = {}
-	this_path = os.path.dirname(os.path.abspath(__file__)) + '/'
+	if rel_path:
+		this_path = ""
+	else:
+		this_path = os.path.dirname(os.path.abspath(__file__)) + '/'
+
 
 	# Hardcoded paths
 	options['src']                              = this_path

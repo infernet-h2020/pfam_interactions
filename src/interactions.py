@@ -43,10 +43,10 @@ def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch
 							if CA_CA_d > distance_threshold:
 								sc_distance.append(CA_CA_d)
 								distance.append(CA_CA_d)
-								output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], CA_CA_d, CA_CA_d, CA_CA_d))
 								if compress_distmtx:
 									new_tot_dist[((ch1id, res1.id[1]), (ch2id, res2.id[1]))] = "MAX"
 								else:
+									output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], CA_CA_d, CA_CA_d, CA_CA_d))
 									new_tot_dist[((ch1id, res1.id[1]), (ch2id, res2.id[1]))] = (distance[-1], sc_distance[-1], CA_distance[-1])
 								continue
 
@@ -66,13 +66,17 @@ def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch
 							distance.append(mindist)
 							sc_distance.append(mindist_sc)
 							new_tot_dist[((ch1id, res1.id[1]), (ch2id, res2.id[1]))] = (distance[-1], sc_distance[-1], CA_distance[-1])
-							output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], mindist, mindist_sc, CA_CA_d))
+							if not compress_distmtx:
+								output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], mindist, mindist_sc, CA_CA_d))
 			break	# consider only first model
 
+	if compress_distmtx:
+		os.remove(output_filename)
 	return new_tot_dist
 
 
 def compress_distance_matrix(dist_dict, distance_threshold):
+	print("Compress...")
 	keys = sorted(list(set([k[0] for k in dist_dict])))
 	linear_d = []
 	set_list = []
@@ -83,33 +87,50 @@ def compress_distance_matrix(dist_dict, distance_threshold):
 				set_list.append({k1, k2})
 	N = len(linear_d)
 	np_lind = np.zeros(N, dtype=(float, 3))
-	np_lind_idx = []
+	np_lind_idx = {}
 	for i, x in enumerate(linear_d):
 		a, b = x
 		np_lind[i] = b
 		idx1 = keys.index(a[0])
 		idx2 = keys.index(a[1])
-		np_lind_idx.append((idx1, idx2))
+		np_lind_idx[(idx1, idx2)] = i
+	print("Done")
 	return (np_lind, np_lind_idx, keys)
 
 
 def decompress_distance_matrix(compressed_dmx):
+	print("Decompress...")
 	np_lind, np_lind_idx, keys = compressed_dmx
+	np_lind_idx_set = set(np_lind_idx)
 	N = len(keys)
 	dist_dict = {}
 	for ik1, k1 in enumerate(keys):
-		for ik2, k2 in enumerate(keys):
-			if (ik1, ik2) in np_lind_idx:
-				idx = np_lind_idx.index((ik1, ik2))
+		for ik2 in range(ik1, len(keys)):
+			k2 = keys[ik2]
+			if (ik1, ik2) in np_lind_idx_set:
+				idx = np_lind_idx[(ik1, ik2)]
+#				print(k1[0], k1[1], k2[0], k2[1], np_lind[idx])
 				dist_dict[(k1, k2)] = np_lind[idx]
 				dist_dict[(k2, k1)] = np_lind[idx]
-			elif (ik2, ik1) in np_lind_idx:
-				idx = np_lind_idx.index((ik2, ik1))
+#				np_lind_idx_set.discard((ik1, ik2))
+#				np_lind_idx_set.discard((ik2, ik1))
+			elif (ik2, ik1) in np_lind_idx_set:
+				idx = np_lind_idx[(ik2, ik1)]
+#				print(k1[0], k1[1], k2[0], k2[1], np_lind[idx])
 				dist_dict[(k1, k2)] = np_lind[idx]
 				dist_dict[(k2, k1)] = np_lind[idx]
+#				np_lind_idx_set.discard((ik1, ik2))
+#				np_lind_idx_set.discard((ik2, ik1))
 			else:
+#				print(k1[0], k1[1], k2[0], k2[1], "MAX")
 				dist_dict[(k1, k2)] = "MAX"
 				dist_dict[(k2, k1)] = "MAX"
+			if k1==("A", 641) and k2==("A", 756):
+				print(k1, k2, dist_dict[(k1, k2)])
+#				exit(1)
+			if k2==("A", 641) and k1==("A", 756):
+				print(k1, k2, dist_dict[(k1, k2)])
+	print("Done")
 	return dist_dict
 
 
@@ -132,7 +153,6 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 			pickle.dump(tot_dist, open(pickle_filename, 'wb'))
 
 	proto_residues_linear = []
-	unmapped_residues_linear = []
 	if ((not compress_distmx) and os.path.exists(pickle_filename)) or (compress_distmx and os.path.exists(pickle_compr_filename)):
 		if compress_distmx:
 			tot_dist = decompress_distance_matrix(pickle.load(open(pickle_compr_filename, 'rb')))
@@ -146,6 +166,9 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 			ch1, r1 = x1
 			ch2, r2 = x2
 			if ch1 in allowed_residues and r1 in allowed_residues[ch1] and ch2 in allowed_residues and r2 in allowed_residues[ch2]:
+				if x1==("A", 641) and x2==("A", 756):
+					print(x1, x2, tot_dist[(x1, x2)])
+					exit(1)
 				if type(tot_dist[(x1, x2)]) == str and tot_dist[(x1, x2)] == "MAX":
 					distance.append(9999)
 					sc_distance.append(9999)
