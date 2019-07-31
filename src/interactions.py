@@ -1,7 +1,7 @@
 from support import *
 
 
-def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch1='', ch2='', compress_distmtx=False):
+def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch1='', ch2='', compress_distmx=False):
 	distance = []
 	sc_distance = []
 	CA_distance = []
@@ -43,7 +43,7 @@ def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch
 							if CA_CA_d > distance_threshold:
 								sc_distance.append(CA_CA_d)
 								distance.append(CA_CA_d)
-								if compress_distmtx:
+								if compress_distmx:
 									new_tot_dist[((ch1id, res1.id[1]), (ch2id, res2.id[1]))] = "MAX"
 								else:
 									output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], CA_CA_d, CA_CA_d, CA_CA_d))
@@ -66,11 +66,11 @@ def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch
 							distance.append(mindist)
 							sc_distance.append(mindist_sc)
 							new_tot_dist[((ch1id, res1.id[1]), (ch2id, res2.id[1]))] = (distance[-1], sc_distance[-1], CA_distance[-1])
-							if not compress_distmtx:
+							if not compress_distmx:
 								output_file.write("{0}\t{1}\t{2}\t{3}\t{4:10.4f}\t{5:10.4f}\t{6:10.4f}\n".format(ch1id, res1.id[1], ch2id, res2.id[1], mindist, mindist_sc, CA_CA_d))
 			break	# consider only first model
 
-	if compress_distmtx:
+	if compress_distmx:
 		os.remove(output_filename)
 	return new_tot_dist
 
