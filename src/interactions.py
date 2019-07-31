@@ -76,7 +76,7 @@ def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch
 
 
 def compress_distance_matrix(dist_dict, distance_threshold):
-	print("Compress...")
+#	print("Compress...")
 	keys = sorted(list(set([k[0] for k in dist_dict])))
 	linear_d = []
 	set_list = []
@@ -94,12 +94,12 @@ def compress_distance_matrix(dist_dict, distance_threshold):
 		idx1 = keys.index(a[0])
 		idx2 = keys.index(a[1])
 		np_lind_idx[(idx1, idx2)] = i
-	print("Done")
+#	print("Done")
 	return (np_lind, np_lind_idx, keys)
 
 
 def decompress_distance_matrix(compressed_dmx):
-	print("Decompress...")
+#	print("Decompress...")
 	np_lind, np_lind_idx, keys = compressed_dmx
 	np_lind_idx_set = set(np_lind_idx)
 	N = len(keys)
@@ -125,12 +125,7 @@ def decompress_distance_matrix(compressed_dmx):
 #				print(k1[0], k1[1], k2[0], k2[1], "MAX")
 				dist_dict[(k1, k2)] = "MAX"
 				dist_dict[(k2, k1)] = "MAX"
-			if k1==("A", 641) and k2==("A", 756):
-				print(k1, k2, dist_dict[(k1, k2)])
-#				exit(1)
-			if k2==("A", 641) and k1==("A", 756):
-				print(k1, k2, dist_dict[(k1, k2)])
-	print("Done")
+#	print("Done")
 	return dist_dict
 
 
@@ -145,7 +140,7 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 
 	if ((not compress_distmx) and (not os.path.exists(pickle_filename))) or (compress_distmx and (not os.path.exists(pickle_compr_filename))):
 		output_filename = results_folder + pdbname + "_distances.txt"
-		tot_dist = compute_distances(pdbname, pdb_path, output_filename, compress_distmx)
+		tot_dist = compute_distances(pdbname, pdb_path, output_filename, distance_threshold, compress_distmx=compress_distmx)
 		if compress_distmx:
 			distmx_pkl = compress_distance_matrix(tot_dist, distance_threshold)
 			pickle.dump(distmx_pkl, open(pickle_compr_filename, 'wb'))
@@ -166,9 +161,6 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 			ch1, r1 = x1
 			ch2, r2 = x2
 			if ch1 in allowed_residues and r1 in allowed_residues[ch1] and ch2 in allowed_residues and r2 in allowed_residues[ch2]:
-				if x1==("A", 641) and x2==("A", 756):
-					print(x1, x2, tot_dist[(x1, x2)])
-					exit(1)
 				if type(tot_dist[(x1, x2)]) == str and tot_dist[(x1, x2)] == "MAX":
 					distance.append(9999)
 					sc_distance.append(9999)
