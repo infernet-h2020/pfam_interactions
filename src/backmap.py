@@ -74,8 +74,14 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 
 #	print("PFAM IN PDB", pfam_in_pdb)
 
-	pickle_filename = cache_folder + "." + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + '_v' + str(version) + ".pkl"
-	backmap_filename = results_folder + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + '_v' + str(version) + ".txt"
+	if complete_backmap:
+		pickle_filename = cache_folder + ".complete_backmap_of_" + pdbname + "_" + msa_type + '_v' + str(version) + ".pkl"
+		backmap_filename = results_folder + "complete_backmap_of_" + pdbname + "_" + msa_type + '_v' + str(version) + ".txt"
+		
+	else:
+		pickle_filename = cache_folder + "." + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + '_v' + str(version) + ".pkl"
+		backmap_filename = results_folder + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + '_v' + str(version) + ".txt"
+	
 #	print(pickle_filename, backmap_filename)
 	if os.path.exists(pickle_filename):
 		bundle = pickle.load(open(pickle_filename, 'rb'))
@@ -158,7 +164,6 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 #		print(pdbname, chain.id, valid_residues[chain.id])
 
 	indexed_pdb_uniprot_res_filename, ind = pdb_uniprot_index[pdbname.upper()]
-	print(indexed_pdb_uniprot_res_filename)
 	with open(indexed_pdb_uniprot_res_filename) as indexed_pdb_uniprot_res_file:
 		for ln, line in enumerate(indexed_pdb_uniprot_res_file):
 			if not line or ln < int(ind)-1:
