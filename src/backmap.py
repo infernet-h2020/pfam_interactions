@@ -1,6 +1,6 @@
 from support import *
 
-def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type="uniprot", force_download=False):
+def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type="uniprot", force_download=False, complete_backmap=False):
 	def print_summary(pdb_dca_resids, pdb_uniprot_resids, backmap_filename):
 		dejavu = set()
 		ie = []
@@ -59,13 +59,16 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 	for line in text:
 		if not line:
 			continue
-	
 		fields = line.split()
+		pdb = fields[2]
+		if pdb != pdbname.upper():
+			continue
 		pdbc = fields[2] + '_' + fields[5]
 		pfam_acc = fields[3]
 		uniprot_acc = fields[4]
-
-		if pfam_acc in [x[0] for x in target_pfam_accs]:
+		if complete_backmap:
+			pfam_in_pdb.append((pfam_acc, uniprot_acc))
+		elif pfam_acc in [x[0] for x in target_pfam_accs]:
 			pfam_in_pdb.append((pfam_acc, uniprot_acc))
 	pfam_in_pdb = sorted(list(set(pfam_in_pdb)))
 
@@ -73,7 +76,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 
 	pickle_filename = cache_folder + "." + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + '_v' + str(version) + ".pkl"
 	backmap_filename = results_folder + "".join([x+"_" for x in sorted(list(set([x[0] for x in pfam_in_pdb])))]) + "on_" + pdbname + "_" + msa_type + '_v' + str(version) + ".txt"
-	print(pickle_filename, backmap_filename)
+#	print(pickle_filename, backmap_filename)
 	if os.path.exists(pickle_filename):
 		bundle = pickle.load(open(pickle_filename, 'rb'))
 		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
@@ -155,6 +158,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 #		print(pdbname, chain.id, valid_residues[chain.id])
 
 	indexed_pdb_uniprot_res_filename, ind = pdb_uniprot_index[pdbname.upper()]
+	print(indexed_pdb_uniprot_res_filename)
 	with open(indexed_pdb_uniprot_res_filename) as indexed_pdb_uniprot_res_file:
 		for ln, line in enumerate(indexed_pdb_uniprot_res_file):
 			if not line or ln < int(ind)-1:
@@ -162,7 +166,6 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 			fields = line.split()
 			if fields[0] != pdbname.upper():
 				continue
-#			print(line)
 			if fields[6] == '1':
 				present = True
 			else:
@@ -183,6 +186,7 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 			altloc = fields[5]
 			uniprot_acc = fields[8]
 			uniprot_resid = int(fields[10])
+#			print("BOEUF", uniprot_acc)
 			if uniprot_acc not in uniprot_pdb_resids:
 				uniprot_pdb_resids[uniprot_acc] = {}
 			if uniprot_resid not in uniprot_pdb_resids[uniprot_acc]:

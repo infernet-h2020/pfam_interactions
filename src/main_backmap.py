@@ -17,6 +17,7 @@ def main_backmap(options):
 	cache_folder = options['cache']
 	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
 	version = options['pfam_version']
+	complete_backmap = False
 	
 	# Download PDB if needed
 	pdb_path = options['pdb_files_ext_path'] + pdbname.lower() + '.pdb'
@@ -30,9 +31,15 @@ def main_backmap(options):
 		exit(1)
 	options['pdb_path'] = pdb_path
 
-	pfam_in_pdb = [(inpfam1, "XXX"), (inpfam2, "XXX")]
+	if inpfam:
+		pfam_in_pdb = [(inpfam, "XXX")]
+	elif (inpfam1 and inpfam2):
+		pfam_in_pdb = [(inpfam1, "XXX"), (inpfam2, "XXX")]
+	else:
+		pfam_in_pdb = []
+		complete_backmap = True
 
 
-	bundle = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
+	bundle = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download, complete_backmap=complete_backmap)
 	if not bundle:
 		exit(1)
