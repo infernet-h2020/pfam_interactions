@@ -103,13 +103,13 @@ def calculate_connected_components(edge_labels, edge_weights):
 				neighbors[v].append(edge_label[1-iv])
 	visited_v = []
 	conn_comps = []
-	print("EDGES", list(zip(edge_labels, edge_weights)))
+	print("EDGES", [x for x in list(zip(edge_labels, edge_weights)) if x[1]>0])
 	for v in vertices:
 		print("VERTEX", v)
 		if v not in visited_v:
 			print("NOT VISITED")
 			conn_comp = [v]
-#			visited_v.append(v)
+			visited_v.append(v)
 			conn_comp = rec(conn_comp, neighbors, v)
 			print("CONN_COMP", conn_comp)
 			conn_comps.append(conn_comp)
@@ -147,7 +147,6 @@ def main_graphmodel(options):
 	nprocs = options['nprocesses']
 	inch1 = ''
 	inch2 = ''
-
 
 	dist1_filename = results_folder + "{0}_distances.txt".format(inpfam1)
 	dist2_filename = results_folder + "{0}_distances.txt".format(inpfam2)
@@ -201,6 +200,13 @@ def main_graphmodel(options):
 		print("".join([x+" "+pdbtypes[1][i]+"\n" for i,x in enumerate(pdbnames[1])]))
 	
 		type0pdbs = [[x for i,x in enumerate(pdbnames[0]) if pdbtypes[0][i]==0], [x for i,x in enumerate(pdbnames[1]) if pdbtypes[1][i]==0]]
+	
+		with open("pdbnames_{0}.txt".format(inpfam1), "w") as f:
+			for pdbname in sorted(list(set(pdbnames[0]) - set(intersection_pdbs))):
+				f.write("{0}\n".format(pdbname))
+		with open("pdbnames_{0}.txt".format(inpfam2), "w") as f:
+			for pdbname in sorted(list(set(pdbnames[1]) - set(intersection_pdbs))):
+				f.write("{0}\n".format(pdbname))
 	
 		failed_pdbs = set()	
 		master_interactions = {}
@@ -379,43 +385,109 @@ def main_graphmodel(options):
 					distances2_labels.append((dca1, dca2))
 					distances2.append(d2s)
 					f.write("\n")
+
 	else:
+		vertices_1, vertices_2 = set(), set()
 		with open(dist1_filename) as f:
 			for line in f:
 				if not line:
 					continue
 				fields = line.split()
 				dca1, dca2, int_str1, int_str2 = int(fields[0]), int(fields[1]), float(fields[2]), float(fields[3])
+				vertices_1.add(dca1)
+				vertices_1.add(dca2)
 				distances1_labels.append((dca1, dca2))
 				distances1.append([float(x) for x in fields[4:]])
+		vertices_1 = sorted(list(vertices_1))
 		with open(dist2_filename) as f:
 			for line in f:
 				if not line:
 					continue
 				fields = line.split()
 				dca1, dca2, int_str1, int_str2 = int(fields[0]), int(fields[1]), float(fields[2]), float(fields[3])
+				vertices_2.add(dca1)
+				vertices_2.add(dca2)
 				distances2_labels.append((dca1, dca2))
 				distances2.append([float(x) for x in fields[4:]])
+		vertices_2 = sorted(list(vertices_2))
 	
 	distances1 = np.array(distances1)
 	distances2 = np.array(distances2)
 
-	for cutoff_d in np.arange(0.0, 20.5, 0.5):
+	for cutoff_d in np.arange(2.0, 20.5, 0.5):
 #		print(cutoff_d)
 #		print(distances1 < cutoff_d)
-		d1bool = (distances1 < cutoff_d)*1
+		d1bool = ((distances1 < cutoff_d) & (distances1 >= 0))*1
 		strengths1 = d1bool.sum(axis=1)
+		print([(i,strengths1[i]) for i in range(len(strengths1)) if strengths1[i]>0])
 		conn_comps1, vertices = calculate_connected_components(distances1_labels, strengths1)
 		largest_size = sorted(conn_comps1, key= lambda x: -len(x))[0]
 		print(inpfam1, cutoff_d, len(largest_size), largest_size)
 #		print(inpfam1, sorted(conn_comps1, key= lambda x: -len(x)))
 
-		d2bool = (distances2 < cutoff_d)*1
+		d2bool = ((distances2 < cutoff_d) & (distances2 >= 0))*1
 		strengths2 = d2bool.sum(axis=1)
 		conn_comps2, vertices = calculate_connected_components(distances2_labels, strengths2)
 		largest_size = sorted(conn_comps2, key= lambda x: -len(x))[0]
 		print(inpfam2, cutoff_d, len(largest_size), largest_size)
 #		print(inpfam2, sorted(conn_comps2, key= lambda x: -len(x)))
+
+
+	# DCA PREDICTION
+	# Find first pfam size
+	offset = -1
+	text = subprocess.run(["zcat {0}/{1}/{2}_uniprot_v{3}.stockholm.gz | tail -n10".format(pfam_uniprot_stockholm_relpath, inpfam1[:4], inpfam1, version)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+	for line in text:
+		if not line or line.startswith("#") or line.startswith("//"):
+			continue
+		fields = line.split()
+		offset = len([x for x in fields[1] if x == '-' or x.lower() != x])
+		break
+	if offset == -1:
+		print("ERROR: no Pfam size found")
+		exit(1)
+
+
+	# read DCA
+	recs = []
+	with open(dca_filename) as dca_file:
+		for line in dca_file:
+			if not line or line.strip().startswith("#"):
+				continue
+			fields = line.split()
+			recs.append((int(fields[0]), int(fields[1]), float(fields[2])))
+#			print(dca_filename, int(fields[0]), int(fields[1]), float(fields[2]))
+	recs = sorted(recs, key= lambda x: -x[2])
+
+	# Retrieve edges	
+	prediction_vertices_1 = []
+	dca_distances1_labels, dca_distances2_labels, dca_distances1, dca_distances2 = [], [], [], []
+	for dca1, dca2, score in recs:
+		if dca1 <= offset and dca2 > offset:
+			if dca1 not in prediction_vertices_1:
+				prediction_vertices_1.append(dca1)
+			dca_distances1_labels.append((dca1, dca2))
+			if (dca1, dca2) in distances1_labels:
+				dca_distances1.append(distances1[distances1_labels.index((dca1, dca2))])
+			else:
+				dca_distances1.append(1000000.0)
+			if len(prediction_vertices_1) == 10:
+				break
+	dca_distances1 = np.array(distances1)
+	dca_distances2 = np.array(distances2)
+
+	for cutoff_d in np.arange(0.0, 20.5, 0.5):
+		d1bool = ((distances1 < cutoff_d) & (distances1 >= 0))*1
+		strengths1 = d1bool.sum(axis=1)
+		conn_comps1, vertices = calculate_connected_components(dca_distances1_labels, strengths1)
+		largest_size = sorted(conn_comps1, key= lambda x: -len(x))[0]
+		print("DCA", inpfam1, cutoff_d, len(largest_size), largest_size)
+
+		d2bool = ((distances2 < cutoff_d) & (distances2 >= 0))*1
+		strengths2 = d2bool.sum(axis=1)
+		conn_comps2, vertices = calculate_connected_components(dca_distances2_labels, strengths2)
+		largest_size = sorted(conn_comps2, key= lambda x: -len(x))[0]
+		print("DCA", inpfam2, cutoff_d, len(largest_size), largest_size)
 
 	exit(1)	
 
@@ -518,8 +590,6 @@ def main_graphmodel(options):
 	#for pdbname in 
 
 	exit(1)
-
-
 
 	if not dca_filename and not find_str:
 		print("ERROR: mindist needs a precomputed plmdca filename")

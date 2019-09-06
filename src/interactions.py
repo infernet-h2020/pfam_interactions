@@ -1,11 +1,35 @@
 from support import *
 
 
+def strip_hydrogens(pdbname, pdb_path):
+
+	conserved = []
+	with open(pdb_path) as pdbf:
+		for line in pdbf:
+			if not line or not line.startswith("ATOM"):
+				conserved.append(line)
+				continue
+			atname = line[11:16].strip()
+			if atname[0] == "H":
+				continue
+			conserved.append(line)
+
+	new_path = pdb_path
+	if conserved:
+		new_path = os.path.dirname(pdb_path) + '/' + 'nohydrogens_' + os.path.basename(pdb_path)
+		print("WARNING! PDB FILE CONTAINS HYDROGENS. Creating file {0} which will be used for calculating interactions".format(new_path))
+		with open (new_path, "w") as pdbf:
+			for line in conserved:
+				pdbf.write(line)
+	return new_path
+
+
 def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch1='', ch2='', compress_distmx=False):
 	distance = []
 	sc_distance = []
 	CA_distance = []
 	new_tot_dist = {}
+	pdb_path = strip_hydrogens(pdbname, pdb_path)
 	parser = Bio.PDB.PDBParser(QUIET=True)
 	structure = parser.get_structure(pdbname, pdb_path)
 
