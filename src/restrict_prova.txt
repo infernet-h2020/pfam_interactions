@@ -1,0 +1,4 @@
+intra
+inter
+intra-not-self
+inter-groups [A] [B]

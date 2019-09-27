@@ -18,6 +18,7 @@ def main_backmap(options):
 	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
 	version = options['pfam_version']
 	complete_backmap = False
+	resolution_threshold = options['resolution_threshold']
 	
 	# Download PDB if needed
 	pdb_path = options['pdb_files_ext_path'] + pdbname.lower() + '.pdb'
@@ -29,6 +30,10 @@ def main_backmap(options):
 	if not os.path.exists(pdb_path):
 		print("ERROR: PDB " + pdbname + " not found")
 		exit(1)
+
+	if not check_pdb_quality(pdb_path, resolution_threshold):
+		exit(1)
+
 	options['pdb_path'] = pdb_path
 
 	if inpfam:

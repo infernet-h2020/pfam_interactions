@@ -23,6 +23,7 @@ def main_interactions(options):
 	dist_filename = options['dist_filename']
 	only_distances = options['only_distances']
 	compress_distmx = options['compress_distmx']
+	resolution_threshold = options['resolution_threshold']
 
 	# Download PDB if needed
 	pdb_path = options['pdb_files_ext_path'] + pdbname.lower() + '.pdb'
@@ -35,6 +36,10 @@ def main_interactions(options):
 	if not os.path.exists(pdb_path):
 		print("ERROR: PDB " + pdbname + " not found")
 		exit(1)
+
+	if not check_pdb_quality(pdb_path, resolution_threshold):
+		exit(1)
+
 	options['pdb_path'] = pdb_path
 
 	if options['dist_filename']:

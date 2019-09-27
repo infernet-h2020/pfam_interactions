@@ -20,6 +20,7 @@ def main_accessibility(options):
 	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
 	version = options['pfam_version']
 	accessibilities_by_domain = options['accessibilities_by_domain']
+	resolution_threshold = options['resolution_threshold']
 	
 	if (not vmd_path):
 		print("ERROR: SASA calculation needs VMD to run. Specify a path for VMD")
@@ -35,6 +36,10 @@ def main_accessibility(options):
 	if not os.path.exists(pdb_path):
 		print("ERROR: PDB " + pdbname + " not found")
 		exit(1)
+
+	if not check_pdb_quality(pdb_path, resolution_threshold):
+		exit(1)
+
 	options['pdb_path'] = pdb_path
 
 	pfam_in_pdb = matches.calculate_matches(pdbname, inpfam, inpfam1, inpfam2, pdb_pfam_filename)

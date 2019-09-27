@@ -43,7 +43,7 @@ def calculate_hmm_seqID(seq1, seq2):
 	
 
 def parallel_submission_routine(data):
-	mind_pdbs, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type, force_download, pdb_files_ext_path, inpfam, inpfam1, inpfam2, inch1, inch2, pdb_pfam_filename, results_folder, cache_folder, self_inter, compress_distmx = data
+	mind_pdbs, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type, force_download, pdb_files_ext_path, inpfam, inpfam1, inpfam2, inch1, inch2, pdb_pfam_filename, results_folder, cache_folder, self_inter, compress_distmx, resolution_threshold = data
 	main_backmap_table = {}
 	interaction_filenames = set()
 	failed_pdbs = set()
@@ -66,6 +66,10 @@ def parallel_submission_routine(data):
 		if not os.path.exists(pdb_path):
 			print("ERROR: PDB " + pdbname + " not found")
 			exit(1)
+			
+		if not check_pdb_quality(pdb_path, resolution_threshold):
+			failed_pdbs.add(pdbname)
+			continue
 
 		bundle = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
 		if not bundle:
@@ -96,14 +100,14 @@ def main_mindistance(options):
 	results_folder = options['results_folder']
 	cache_folder = options['cache']
 	dca_filename = options['dca_filename']
-	only_intra = options['only_intra']
-	only_inter = options['only_inter']
+	restrict_comparison = options['restrict_comparison']
 	find_str = options['find_structures']
 	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
 	check_architecture = options['check_architecture']
 	version = options['pfam_version']
 	nprocs = options['nprocesses']
 	compress_distmx = options['compress_distmx']
+	resolution_threshold = options['resolution_threshold']
 	inch1 = ''
 	inch2 = ''
 
@@ -281,7 +285,7 @@ def main_mindistance(options):
 		supermind_pdbs[i%nprocs].append(mind_pdbs[i])
 	data = []
 	for i in range(nprocs):
-		data.append((supermind_pdbs[i], pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type, force_download, pdb_files_ext_path, inpfam, inpfam1, inpfam2, inch1, inch2, pdb_pfam_filename, results_folder, cache_folder, self_inter, compress_distmx))
+		data.append((supermind_pdbs[i], pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, version, msa_type, force_download, pdb_files_ext_path, inpfam, inpfam1, inpfam2, inch1, inch2, pdb_pfam_filename, results_folder, cache_folder, self_inter, compress_distmx, resolution_threshold))
 
 	pool = multiprocessing.Pool(processes=nprocs)
 	pool_outputs = pool.map(parallel_submission_routine, data)
@@ -343,6 +347,6 @@ def main_mindistance(options):
 		print(interpolated_pdbs_string+"\n")
 
 	if inpfam:
-		mindistance.mindistance(mind_pdbs, inpfam, inpfam, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap, main_backmap_table, with_offset=False)
+		mindistance.mindistance(mind_pdbs, inpfam, inpfam, restrict_comparison, results_folder, dca_filename, pfam_pdbmap, main_backmap_table, with_offset=False)
 	else:
-		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap, main_backmap_table)
+		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder, dca_filename, pfam_pdbmap, main_backmap_table)

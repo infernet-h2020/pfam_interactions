@@ -32,9 +32,9 @@ def main_parser():
 	parser.add_argument('-dca', '--dca_filename', nargs='?')
 	parser.add_argument('-distout', '--dist_filename', nargs='?')
 	parser.add_argument('--only_distances', action='store_const', const='True', default='False')
-	parser.add_argument('-intra', '--only_intra', action='store_const', const='True', default='False')
-	parser.add_argument('-inter', '--only_inter', action='store_const', const='True', default='False')
 	parser.add_argument('-v', '--pfam_version', nargs='?', default='32')
+	parser.add_argument('-resolution', '--resolution_threshold', nargs='?', default='4.5')
+	parser.add_argument('-restrict', '--restrict_comparison', nargs='?', default='')
 	parser.add_argument('-out', '--output_path', nargs='?', default='None')
 	parser.add_argument('-find_str', '--find_structures', action='store_const', const='True', default='False')
 #	parser.add_argument('-no_indexing', '--no_indexing', action='store_const', const='True', default='False')
@@ -93,7 +93,7 @@ def main_parser():
 		else:
 			print("ERROR: the output path specified does not exist\n{0}".format(options['output_path']))
 
-	if type(options['inpfam']) == type(None) and type(options['inpfam1']) == type(None) and type(options['inpfam2']) == type(None):
+	if type(options['inpfam']) == type(None) and type(options['inpfam1']) == type(None) and type(options['inpfam2']) == type(None) and (not (options['backmap'])):
 		print("ERROR: Specify at least one Pfam accession code")
 		exit(1)
 

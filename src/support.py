@@ -14,6 +14,11 @@ from sklearn import metrics
 import matplotlib.pyplot as plt
 from Bio.SubsMat import MatrixInfo as matlist
 import numpy as np
+from collections import Mapping, Container
+from sys import getsizeof
+import shutil
+import re
+#import objgraph
 
 def from3to1(resname, include_MSEs=False):
 	f3t1 = {'ALA' : 'A',
@@ -353,3 +358,54 @@ def dbscan(X):
 		for i in range(N):
 			for j in range(N):
 				m_file.write("{0} {1} {2}\n".format(i, j, X[i,j]))
+
+
+def deep_getsizeof(o, ids):
+	"""Find the memory footprint of a Python object
+	
+	This is a recursive function that drills down a Python object graph
+	like a dictionary holding nested dictionaries with lists of lists
+	and tuples and sets.
+	
+	The sys.getsizeof function does a shallow size of only. It counts each
+	object inside a container as pointer only regardless of how big it
+	really is.
+
+	:param o: the object
+	:param ids:
+	:return:
+
+	Call: deep_getsizeof(object_to_be_evaluated, set())
+	"""
+	d = deep_getsizeof
+	if id(o) in ids:
+		return 0
+
+	r = getsizeof(o)
+	ids.add(id(o))
+
+	if isinstance(o, str):
+		return r
+
+	if isinstance(o, Mapping):
+		return r + sum(d(k, ids) + d(v, ids) for k, v in o.items())
+
+	if isinstance(o, Container):
+		return r + sum(d(x, ids) for x in o)
+	
+	return r
+
+
+def check_pdb_quality(pdb_path, resolution_threshold):
+	with open(pdb_path) as f:
+		for line in f:
+			if line.startswith("EXPDTA"):
+				if line.split()[1] != "X-RAY":
+					print(pdb_path, "not an X-ray structure")
+					return False
+			if line.startswith("REMARK   2 RESOLUTION"):
+				if float(line.split()[3]) > resolution_threshold:
+					print(pdb_path, "not enough resolution:", line.split()[3], ">", resolution_threshold)
+					return False
+				print("PDB good!")
+				return True

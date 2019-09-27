@@ -4,6 +4,7 @@ from support import *
 def strip_hydrogens(pdbname, pdb_path):
 
 	conserved = []
+	contains_h = False
 	with open(pdb_path) as pdbf:
 		for line in pdbf:
 			if not line or not line.startswith("ATOM"):
@@ -11,12 +12,14 @@ def strip_hydrogens(pdbname, pdb_path):
 				continue
 			atname = line[11:16].strip()
 			if atname[0] == "H":
+				contains_h = True
 				continue
 			conserved.append(line)
 
 	new_path = pdb_path
-	if conserved:
-		new_path = os.path.dirname(pdb_path) + '/' + 'nohydrogens_' + os.path.basename(pdb_path)
+	nohydrogens_path = os.path.dirname(pdb_path) + '/' + 'nohydrogens_' + os.path.basename(pdb_path)
+	if conserved and not os.path.exists(nohydrogens_path):
+		new_path = nohydrogens_path
 		print("WARNING! PDB FILE CONTAINS HYDROGENS. Creating file {0} which will be used for calculating interactions".format(new_path))
 		with open (new_path, "w") as pdbf:
 			for line in conserved:
@@ -44,6 +47,7 @@ def compute_distances(pdbname, pdb_path, output_filename, distance_threshold, ch
 					continue
 				for chain2 in model:
 					ch2id = chain2.get_id()
+#					print(ch1id, ch2id)
 					if ch2 and ch2 != ch2id:
 						continue
 #					if (ch1id, ch2id) in chain_pairs or (ch2id, ch1id) in chain_pairs:
@@ -105,6 +109,7 @@ def compress_distance_matrix(dist_dict, distance_threshold):
 	linear_d = []
 	set_list = []
 	for ik1, k1 in enumerate(keys):
+#		print(ik1)
 		for ik2, k2 in enumerate(keys):
 			if type(dist_dict[(k1, k2)]) != str and dist_dict[(k1, k2)][2] <= distance_threshold and {k1, k2} not in set_list:
 				linear_d.append(((k1, k2), dist_dict[(k1, k2)]))

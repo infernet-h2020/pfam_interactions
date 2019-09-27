@@ -4,6 +4,7 @@ import interactions
 import mindistance
 import networkx as nx
 import matplotlib.pyplot as plt
+import itertools
 from support import *
 
 
@@ -103,22 +104,132 @@ def calculate_connected_components(edge_labels, edge_weights):
 				neighbors[v].append(edge_label[1-iv])
 	visited_v = []
 	conn_comps = []
-	print("EDGES", [x for x in list(zip(edge_labels, edge_weights)) if x[1]>0])
+#	print("EDGES", [x for x in list(zip(edge_labels, edge_weights)) if x[1]>0])
 	for v in vertices:
-		print("VERTEX", v)
+#		print("VERTEX", v)
 		if v not in visited_v:
-			print("NOT VISITED")
+#			print("NOT VISITED")
 			conn_comp = [v]
 			visited_v.append(v)
 			conn_comp = rec(conn_comp, neighbors, v)
-			print("CONN_COMP", conn_comp)
+#			print("CONN_COMP", conn_comp)
 			conn_comps.append(conn_comp)
-			print("CONN_COMPS_TOT", conn_comps)
+#			print("CONN_COMPS_TOT", conn_comps)
 #			if len(conn_comp) > 1:
 			visited_v += conn_comp#[1:]
-			print("VISITED_V", visited_v)
+#			print("VISITED_V", visited_v)
 
 	return conn_comps, vertices
+
+
+def main_graphprediction(options):
+	mindist = options['min_dist']
+	inpfam = options['inpfam']
+	inpfam1 = options['inpfam1']
+	inpfam2 = options['inpfam2']
+	pfam_pfam_filename = options['pfam_pfam_filename']
+	pfam_pdbmap = options['pfam_pdbmap']
+	pdb_pfam_filename = options['pdb_pfam_filename']
+	pdb_uniprot_res_filename = options['pdb_uniprot_res_filename']
+	indexed_pdb_uniprot_res_folder = options['indexed_pdb_uniprot_res_folder']
+	pfam_uniprot_stockholm_relpath = options['pfam_uniprot_stockholm_relpath']
+	msa_type = options['msa_type']
+	force_download = options['force_download']
+	pdb_files_ext_path = options['pdb_files_ext_path']
+	results_folder = options['results_folder']
+	cache_folder = options['cache']
+	dca_filename = options['dca_filename']
+	only_intra = options['only_intra']
+	only_inter = options['only_inter']
+	find_str = options['find_structures']
+	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
+	check_architecture = options['check_architecture']
+	version = options['pfam_version']
+	nprocs = options['nprocesses']
+	inch1 = ''
+	inch2 = ''
+	
+
+	# Define length of 2nd pfam family in order to set the DCA offset
+	offset = -1
+	text = subprocess.run(["zcat {0}/{1}/{2}_uniprot_v{3}.stockholm.gz | tail -n10".format(pfam_uniprot_stockholm_relpath, inpfam1[:4], inpfam1, version)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+	for line in text:
+		if not line or line.startswith("#") or line.startswith("//"):
+			continue
+		fields = line.split()
+		offset = len([x for x in fields[1] if x == '-' or x.lower() != x])
+		break
+	if offset == -1:
+		print("ERROR: no Pfam size found")
+		exit(1)
+
+
+	# Read DCA prediction file
+	recs = []
+	with open(dca_filename) as dca_file:
+		for line in dca_file:
+			if not line or line.strip().startswith("#"):
+				continue
+			fields = line.split()
+			recs.append((int(fields[0]), int(fields[1]), float(fields[2])))
+	recs = sorted(recs, key= lambda x: -x[2])
+
+
+	# Retrieve predicted vertices in both units
+	#  The retrieval stops at the 50th prediction. This can be replaced with a criterion on the DCA score, or more
+	top_predictions = 50
+	prediction_vertices = [[], []]
+	dca = [-1000, -1000]
+	ipred = 1
+	for ipv in range(len(prediction_vertices)):
+		ipred = 1
+		for dca[0], dca[1], score in recs:
+			if dca[ipv] <= offset and dca[ipv] > offset:
+				if dca[ipv] not in prediction_vertices[ipv]:
+					prediction_vertices[ipv].append(dca[ipv])
+				if ipred == top_predictions:
+					break
+				ipred += 1
+
+	"""
+	# Make 2 lists of all structures that do not contain the two pfam together, and that do not contain copies of the same pfam.
+		text = []
+		pdbnames = []
+		pdbtypes = [[], []]
+		for i, inpfam in enumerate([inpfam1, inpfam2]):
+			text.append(subprocess.run(["zgrep {0} {1} | awk '{{print substr($1,1,4)}}'".format(inpfam, pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n'))
+			pdbnames.append(sorted(list(set([x.strip().lower() for x in text[i] if x.strip()])))) # DEBUG LEVA IL [:10] !!!!!!!!!!!!!!!!!!!!!!!!
+			for pdbname in pdbnames[i]:
+				textu = subprocess.run(["zgrep {0} {1} | awk '{{print substr($4,1,7)}}'".format(pdbname.upper(), pfam_pdbmap)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+				textu = [x for x in textu if x.strip()]
+				if not textu:
+					print("Empty")
+					exit(1)
+				if len(textu) == 1:
+					if textu[0] == inpfam:
+						pdbtype = "single"
+					else:
+						print("How is this possible?")
+						print(text)
+						print(textu)
+						exit(1)
+				else:
+					homogeneous = True
+					has_partner = False
+					for pfam_found in textu:
+						if pfam_found != inpfam:
+							homogeneous = False
+						if pfam_found == [inpfam1, inpfam2][1-i]:
+							has_partner = True
+					if homogeneous:
+						pdbtype = "homogeneous"
+					elif not has_partner:
+						pdbtype = "heterogeneous"
+					else:
+						pdbtype = "partner"
+				pdbtypes[i].append(pdbtype)
+		intersection_pdbs = sorted(list(set(pdbnames[0]) & set(pdbnames[1])))
+	"""
 
 
 def main_graphmodel(options):
@@ -145,16 +256,69 @@ def main_graphmodel(options):
 	check_architecture = options['check_architecture']
 	version = options['pfam_version']
 	nprocs = options['nprocesses']
+	resolution_threshold = options['resolution_threshold']
 	inch1 = ''
 	inch2 = ''
 
+
+	offset = -1
+	text = subprocess.run(["zcat {0}/{1}/{2}_uniprot_v{3}.stockholm.gz | tail -n10".format(pfam_uniprot_stockholm_relpath, inpfam1[:4], inpfam1, version)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+	for line in text:
+		if not line or line.startswith("#") or line.startswith("//"):
+			continue
+		fields = line.split()
+		offset = len([x for x in fields[1] if x == '-' or x.lower() != x])
+		break
+	if offset == -1:
+		print("ERROR: no Pfam size found")
+		exit(1)
+
+
+	# read DCA
+	recs = []
+	with open(dca_filename) as dca_file:
+		for line in dca_file:
+			if not line or line.strip().startswith("#"):
+				continue
+			fields = line.split()
+			recs.append((int(fields[0]), int(fields[1]), float(fields[2])))
+#			print(dca_filename, int(fields[0]), int(fields[1]), float(fields[2]))
+	recs = sorted(recs, key= lambda x: -x[2])
+
+	# Retrieve edges
+	top_predictions = 50 # PARAM 1
+	prediction_vertices_1 = []
+	ipred = 1
+	for dca1, dca2, score in recs:
+		if dca1 <= offset and dca2 > offset:
+			if dca1 not in prediction_vertices_1:
+				prediction_vertices_1.append(dca1)
+			if ipred == top_predictions:
+				break
+			ipred += 1
+	prediction_vertices_2 = []
+	ipred = 1
+	for dca1, dca2, score in recs:
+		if dca1 <= offset and dca2 > offset:
+			if dca2 not in prediction_vertices_2:
+				prediction_vertices_2.append(dca2)
+			if ipred == top_predictions:
+				break
+			ipred += 1
+
 	dist1_filename = results_folder + "{0}_distances.txt".format(inpfam1)
 	dist2_filename = results_folder + "{0}_distances.txt".format(inpfam2)
+	dcadist1_filename = results_folder + "{0}_DCA_distances.txt".format(inpfam1)
+	dcadist2_filename = results_folder + "{0}_DCA_distances.txt".format(inpfam2)
 	distances1 = []
 	distances1_labels = []
 	distances2 = []
 	distances2_labels = []
-	if not (os.path.exists(dist1_filename) and os.path.exists(dist2_filename)):
+	dca_distances1 = []
+	dca_distances1_labels = []
+	dca_distances2 = []
+	dca_distances2_labels = []
+	if not (os.path.exists(dist1_filename) and os.path.exists(dist2_filename) and os.path.exists(dcadist1_filename) and os.path.exists(dcadist2_filename)):
 		text = []
 		pdbnames = []
 		pdbtypes = [[], []]
@@ -194,6 +358,11 @@ def main_graphmodel(options):
 	
 		print("\n\nPDBs with both partners:")
 		print("".join([x+" " for x in intersection_pdbs]))
+
+		if not "".join([x+" " for x in intersection_pdbs]):
+			print("No interactions PDBs. Exit")
+			exit(1)
+
 		print("\n\nPDBS with Pfam {0}:".format(inpfam1))
 		print("".join([x+" "+pdbtypes[0][i]+"\n" for i,x in enumerate(pdbnames[0])]))
 		print("\n\nPDBS with Pfam {0}:".format(inpfam2))
@@ -232,12 +401,16 @@ def main_graphmodel(options):
 			pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
 			if not os.path.exists(pdb_path):
 				if not os.path.exists(pdb_files_ext_path):
-					print("ERROR: PDB path not found")
+					print("ERROR: PDB path not found. Exit")
 					exit(1)
 				download_pdb(pdbname, pdb_files_ext_path)
 			if not os.path.exists(pdb_path):
-				print("ERROR: PDB " + pdbname + " not found")
+				print("ERROR: PDB " + pdbname + " not found. Exit")
 				exit(1)
+
+			if not check_pdb_quality(pdb_path, resolution_threshold):
+				failed_pdbs.add(pdbname)
+				continue
 
 			bundle = backmap.backmap_pfam(pfam_in_pdb, pdbname, pdb_path, pdb_pfam_filename, pdb_uniprot_res_filename, indexed_pdb_uniprot_res_folder, pdb_uniprot_res_index_filename, pfam_uniprot_stockholm_relpath, cache_folder, results_folder, version, msa_type=msa_type, force_download=force_download)
 			if not bundle:
@@ -266,11 +439,11 @@ def main_graphmodel(options):
 			pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
 			if not os.path.exists(pdb_path):
 				if not os.path.exists(pdb_files_ext_path):
-					print("ERROR: PDB path not found")
+					print("ERROR: PDB path not found. Exit")
 					exit(1)
 				download_pdb(pdbname, pdb_files_ext_path)
 			if not os.path.exists(pdb_path):
-				print("ERROR: PDB " + pdbname + " not found")
+				print("ERROR: PDB " + pdbname + " not found. Exit")
 				exit(1)
 	
 	
@@ -299,16 +472,15 @@ def main_graphmodel(options):
 						master_interactions_1[(dca1, dca2)].append((pdbname, (ch1, resid1), (ch2, resid2), dist))
 	
 	
-		offset = sorted(list(master_interactions.keys()))[-1][0]
 		for pdbname in sorted(list(set(pdbnames[1]) - set(intersection_pdbs))):
 			pdb_path = pdb_files_ext_path + pdbname.lower() + '.pdb'
 			if not os.path.exists(pdb_path):
 				if not os.path.exists(pdb_files_ext_path):
-					print("ERROR: PDB path not found")
+					print("ERROR: PDB path not found. Exit")
 					exit(1)
 				download_pdb(pdbname, pdb_files_ext_path)
 			if not os.path.exists(pdb_path):
-				print("ERROR: PDB " + pdbname + " not found")
+				print("ERROR: PDB " + pdbname + " not found. Exit")
 				exit(1)
 	
 	
@@ -337,6 +509,11 @@ def main_graphmodel(options):
 							master_interactions_2[(dca1+offset, dca2+offset)] = []
 						master_interactions_2[(dca1+offset, dca2+offset)].append((pdbname, (ch1, resid1), (ch2, resid2), dist))
 			
+
+		if not master_interactions_1 or not master_interactions_2:
+			print("No PDBs with separate domains. Exit")
+			exit(1)
+
 		interaction_dist_thr = 8.0
 		interaction_list = []
 		interaction_strength = []
@@ -350,14 +527,14 @@ def main_graphmodel(options):
 					else:
 						interaction_strength[-1] += 1/Ninter
 		
-		print(interaction_list)
-		print(interaction_strength)
+#		print(interaction_list)
+#		print(interaction_strength)
 	
 		interaction_list_1 = []
 		interaction_strength_1 = []
 		Ninter = len(master_interactions_1[list(master_interactions_1.keys())[0]])
 		vertices_1 = sorted(list(set([x[0] for x in interaction_list])))
-		with open(results_folder + "{0}_distances.txt".format(inpfam1), "w") as f:
+		with open(dist1_filename, "w") as f:
 			for idca1, dca1 in enumerate(vertices_1):
 				for idca2 in range(idca1+1, len(vertices_1)):
 					dca2 = vertices_1[idca2]
@@ -369,11 +546,10 @@ def main_graphmodel(options):
 					distances1_labels.append((dca1, dca2))
 					distances1.append(d1s)
 					f.write("\n")
-	
-	
+		
 		Ninter = len(master_interactions_2[list(master_interactions_2.keys())[0]])
 		vertices_2 = sorted(list(set([x[1] for x in interaction_list])))
-		with open(results_folder + "{0}_distances.txt".format(inpfam2), "w") as f:
+		with open(dist2_filename, "w") as f:
 			for idca1, dca1 in enumerate(vertices_2):
 				for idca2 in range(idca1+1, len(vertices_2)):
 					dca2 = vertices_2[idca2]
@@ -386,6 +562,33 @@ def main_graphmodel(options):
 					distances2.append(d2s)
 					f.write("\n")
 
+		Ninter = len(master_interactions_1[list(master_interactions_1.keys())[0]])
+		with open(dcadist1_filename, "w") as f:
+			for idca1, dca1 in enumerate(prediction_vertices_1):
+				for idca2 in range(idca1+1, len(prediction_vertices_1)):
+					dca2 = prediction_vertices_1[idca2]
+					f.write("{0}\t{1}\t{2}\t{3}\t".format(dca1, dca2, interaction_strength[idca1], interaction_strength[idca2]))
+					d1s = []
+					for i in range(Ninter):
+						d1s.append(master_interactions_1[(dca1, dca2)][i][3])
+						f.write("{0}\t".format(master_interactions_1[(dca1, dca2)][i][3]))
+					dca_distances1_labels.append((dca1, dca2))
+					dca_distances1.append(d1s)
+					f.write("\n")
+	
+		Ninter = len(master_interactions_2[list(master_interactions_2.keys())[0]])
+		with open(dcadist2_filename, "w") as f:
+			for idca1, dca1 in enumerate(prediction_vertices_2):
+				for idca2 in range(idca1+1, len(prediction_vertices_2)):
+					dca2 = prediction_vertices_2[idca2]
+					f.write("{0}\t{1}\t{2}\t{3}\t".format(dca1, dca2, interaction_strength[idca1], interaction_strength[idca2]))
+					d2s = []
+					for i in range(Ninter):
+						d2s.append(master_interactions_2[(dca1, dca2)][i][3])
+						f.write("{0}\t".format(master_interactions_2[(dca1, dca2)][i][3]))
+					dca_distances2_labels.append((dca1, dca2))
+					dca_distances2.append(d2s)
+					f.write("\n")
 	else:
 		vertices_1, vertices_2 = set(), set()
 		with open(dist1_filename) as f:
@@ -410,84 +613,171 @@ def main_graphmodel(options):
 				distances2_labels.append((dca1, dca2))
 				distances2.append([float(x) for x in fields[4:]])
 		vertices_2 = sorted(list(vertices_2))
-	
-	distances1 = np.array(distances1)
-	distances2 = np.array(distances2)
+		prediction_vertices_1 = set()
+		prediction_vertices_2 = set()
+		with open(dcadist1_filename) as f:
+			for line in f:
+				if not line:
+					continue
+				fields = line.split()
+				dca1, dca2, int_str1, int_str2 = int(fields[0]), int(fields[1]), float(fields[2]), float(fields[3])
+				prediction_vertices_1.add(dca1)
+				prediction_vertices_1.add(dca2)
+				dca_distances1_labels.append((dca1, dca2))
+				dca_distances1.append([float(x) for x in fields[4:]])
+		prediction_vertices_1 = sorted(list(prediction_vertices_1))
+		with open(dcadist2_filename) as f:
+			for line in f:
+				if not line:
+					continue
+				fields = line.split()
+				dca1, dca2, int_str1, int_str2 = int(fields[0]), int(fields[1]), float(fields[2]), float(fields[3])
+				prediction_vertices_2.add(dca1)
+				prediction_vertices_2.add(dca2)
+				dca_distances2_labels.append((dca1, dca2))
+				dca_distances2.append([float(x) for x in fields[4:]])
+		prediction_vertices_2 = sorted(list(prediction_vertices_2))
 
-	for cutoff_d in np.arange(2.0, 20.5, 0.5):
+	vertices_limit = 20 # PARAM 2
+	nonadj = 4
+	
+	distances1_sel = []
+	distances1_labels_sel = []
+	compared_vertices_1 = []
+	for i, dcas in enumerate(distances1_labels):
+		x, y = dcas
+		if abs(y-x)>nonadj:
+			distances1_labels_sel.append((x, y))
+			distances1_sel.append(distances1[i])
+			if x not in compared_vertices_1:
+				compared_vertices_1.append(x)
+			if y not in compared_vertices_1:
+				compared_vertices_1.append(y)
+#		if len(compared_vertices_1) > vertices_limit:
+#			break
+			
+	distances2_sel = []
+	distances2_labels_sel = []
+	compared_vertices_2 = []
+	for i, dcas in enumerate(distances2_labels):
+		x, y = dcas
+		if abs(y-x)>nonadj:
+			distances2_labels_sel.append((x, y))
+			distances2_sel.append(distances2[i])
+			if x not in compared_vertices_2:
+				compared_vertices_2.append(x)
+			if y not in compared_vertices_2:
+				compared_vertices_2.append(y)
+#		if len(compared_vertices_2) > vertices_limit:
+#			break
+
+	dca_distances1_sel = []
+	dca_distances1_labels_sel = []
+	compared_prediction_vertices_1 = []
+	for i, dcas in enumerate(dca_distances1_labels):
+		x, y = dcas
+		if abs(y-x)>nonadj:
+			dca_distances1_labels_sel.append((x, y))
+			dca_distances1_sel.append(dca_distances1[i])
+			if x not in compared_prediction_vertices_1:
+				compared_prediction_vertices_1.append(x)
+			if y not in compared_prediction_vertices_1:
+				compared_prediction_vertices_1.append(y)
+		if len(compared_prediction_vertices_1) > vertices_limit:
+			break
+			
+	dca_distances2_sel = []
+	dca_distances2_labels_sel = []
+	compared_prediction_vertices_2 = []
+	for i, dcas in enumerate(dca_distances2_labels):
+		x, y = dcas
+		if abs(y-x)>nonadj:
+			dca_distances2_labels_sel.append((x, y))
+			dca_distances2_sel.append(dca_distances2[i])
+			if x not in compared_prediction_vertices_2:
+				compared_prediction_vertices_2.append(x)
+			if y not in compared_prediction_vertices_2:
+				compared_prediction_vertices_2.append(y)
+		if len(compared_prediction_vertices_2) > vertices_limit:
+			break
+
+	distances1_sel = np.array(distances1_sel)
+	distances2_sel = np.array(distances2_sel)
+	dca_distances1_sel = np.array(dca_distances1_sel)
+	dca_distances2_sel = np.array(dca_distances2_sel)
+
+	lines = np.zeros((7,41))
+	first_ccs = 1 # PARAM 3
+
+	for icut, cutoff_d in enumerate(np.arange(0, 20.5, 0.5)):
+		lines[0][icut] = cutoff_d
+
 #		print(cutoff_d)
 #		print(distances1 < cutoff_d)
-		d1bool = ((distances1 < cutoff_d) & (distances1 >= 0))*1
+		d1bool = ((distances1_sel < cutoff_d) & (distances1_sel >= 0))*1
 		strengths1 = d1bool.sum(axis=1)
-		print([(i,strengths1[i]) for i in range(len(strengths1)) if strengths1[i]>0])
-		conn_comps1, vertices = calculate_connected_components(distances1_labels, strengths1)
-		largest_size = sorted(conn_comps1, key= lambda x: -len(x))[0]
-		print(inpfam1, cutoff_d, len(largest_size), largest_size)
+#		print([(i,strengths1[i]) for i in range(len(strengths1)) if strengths1[i]>0])
+		conn_comps1, vertices = calculate_connected_components(distances1_labels_sel, strengths1)
+		largest_size = list(itertools.chain.from_iterable(sorted(conn_comps1, key= lambda x: -len(x))[0:first_ccs]))
+#		largest_size = [x for x in sorted(conn_comps1, key= lambda x: -len(x))[0:first_ccs]]
+		print(inpfam1, cutoff_d, len(largest_size))
+		lines[1][icut] = len(largest_size)
 #		print(inpfam1, sorted(conn_comps1, key= lambda x: -len(x)))
 
-		d2bool = ((distances2 < cutoff_d) & (distances2 >= 0))*1
+		d2bool = ((distances2_sel < cutoff_d) & (distances2_sel >= 0))*1
 		strengths2 = d2bool.sum(axis=1)
-		conn_comps2, vertices = calculate_connected_components(distances2_labels, strengths2)
-		largest_size = sorted(conn_comps2, key= lambda x: -len(x))[0]
-		print(inpfam2, cutoff_d, len(largest_size), largest_size)
+		conn_comps2, vertices = calculate_connected_components(distances2_labels_sel, strengths2)
+		largest_size = list(itertools.chain.from_iterable(sorted(conn_comps2, key= lambda x: -len(x))[0:first_ccs]))
+#		largest_size = [x for x in sorted(conn_comps2, key= lambda x: -len(x))[0:first_ccs]]
+		print(inpfam2, cutoff_d, len(largest_size))
+		lines[2][icut] = len(largest_size)
 #		print(inpfam2, sorted(conn_comps2, key= lambda x: -len(x)))
 
-
-	# DCA PREDICTION
-	# Find first pfam size
-	offset = -1
-	text = subprocess.run(["zcat {0}/{1}/{2}_uniprot_v{3}.stockholm.gz | tail -n10".format(pfam_uniprot_stockholm_relpath, inpfam1[:4], inpfam1, version)], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
-	for line in text:
-		if not line or line.startswith("#") or line.startswith("//"):
-			continue
-		fields = line.split()
-		offset = len([x for x in fields[1] if x == '-' or x.lower() != x])
-		break
-	if offset == -1:
-		print("ERROR: no Pfam size found")
-		exit(1)
-
-
-	# read DCA
-	recs = []
-	with open(dca_filename) as dca_file:
-		for line in dca_file:
-			if not line or line.strip().startswith("#"):
-				continue
-			fields = line.split()
-			recs.append((int(fields[0]), int(fields[1]), float(fields[2])))
-#			print(dca_filename, int(fields[0]), int(fields[1]), float(fields[2]))
-	recs = sorted(recs, key= lambda x: -x[2])
-
-	# Retrieve edges	
-	prediction_vertices_1 = []
-	dca_distances1_labels, dca_distances2_labels, dca_distances1, dca_distances2 = [], [], [], []
-	for dca1, dca2, score in recs:
-		if dca1 <= offset and dca2 > offset:
-			if dca1 not in prediction_vertices_1:
-				prediction_vertices_1.append(dca1)
-			dca_distances1_labels.append((dca1, dca2))
-			if (dca1, dca2) in distances1_labels:
-				dca_distances1.append(distances1[distances1_labels.index((dca1, dca2))])
-			else:
-				dca_distances1.append(1000000.0)
-			if len(prediction_vertices_1) == 10:
-				break
-	dca_distances1 = np.array(distances1)
-	dca_distances2 = np.array(distances2)
-
-	for cutoff_d in np.arange(0.0, 20.5, 0.5):
-		d1bool = ((distances1 < cutoff_d) & (distances1 >= 0))*1
+#		print(cutoff_d)
+#		print(distances1 < cutoff_d)
+		d1bool = ((dca_distances1_sel < cutoff_d) & (dca_distances1_sel >= 0))*1
 		strengths1 = d1bool.sum(axis=1)
-		conn_comps1, vertices = calculate_connected_components(dca_distances1_labels, strengths1)
-		largest_size = sorted(conn_comps1, key= lambda x: -len(x))[0]
-		print("DCA", inpfam1, cutoff_d, len(largest_size), largest_size)
+#		print([(i,strengths1[i]) for i in range(len(strengths1)) if strengths1[i]>0])
+		conn_comps1, vertices = calculate_connected_components(dca_distances1_labels_sel, strengths1)
+		largest_size = list(itertools.chain.from_iterable(sorted(conn_comps1, key= lambda x: -len(x))[0:first_ccs]))
+		true_in_largest_size = [x for x in largest_size if x in compared_vertices_1]
+#		largest_size = [x for x in sorted(conn_comps1, key= lambda x: -len(x))[0:first_ccs]]
+		print(inpfam1, cutoff_d, len(largest_size), "DCA")
+		lines[3][icut] = len(largest_size)
+		lines[5][icut] = len(true_in_largest_size)
+#		print(inpfam1, sorted(conn_comps1, key= lambda x: -len(x)))
 
-		d2bool = ((distances2 < cutoff_d) & (distances2 >= 0))*1
+		d2bool = ((dca_distances2_sel < cutoff_d) & (dca_distances2_sel >= 0))*1
 		strengths2 = d2bool.sum(axis=1)
-		conn_comps2, vertices = calculate_connected_components(dca_distances2_labels, strengths2)
-		largest_size = sorted(conn_comps2, key= lambda x: -len(x))[0]
-		print("DCA", inpfam2, cutoff_d, len(largest_size), largest_size)
+		conn_comps2, vertices = calculate_connected_components(dca_distances2_labels_sel, strengths2)
+		largest_size = list(itertools.chain.from_iterable(sorted(conn_comps2, key= lambda x: -len(x))[0:first_ccs]))
+		true_in_largest_size = [x for x in largest_size if x in compared_vertices_2]
+#		largest_size = [x for x in sorted(conn_comps2, key= lambda x: -len(x))[0:first_ccs]]
+		print(inpfam2, cutoff_d, len(largest_size), "DCA")
+		lines[4][icut] = len(largest_size)
+		lines[6][icut] = len(true_in_largest_size)
+#		print(inpfam2, sorted(conn_comps2, key= lambda x: -len(x)))
+	print(compared_vertices_1)
+	print(compared_vertices_2)
+	print(compared_prediction_vertices_1)
+	print(compared_prediction_vertices_2)
+	with open(results_folder + 'graph_data.txt', 'w') as graphf:
+		graphf.write('#Cutoff Struct_{0} Struct_{1} DCA_{0} DCA{1}\n'.format(inpfam1, inpfam2))
+		for i in range(len(lines[0])):
+			graphf.write('{0:6.1f} {1:6d} {2:6d} {3:6d} {4:6d} {5:6d} {6:6d}\n'.format(lines[0][i], int(lines[1][i]), int(lines[2][i]), int(lines[3][i]), int(lines[4][i]), int(lines[5][i]), int(lines[6][i])))
+			
+
+	plt.subplot(111)
+	plt.plot(lines[0], lines[1]/lines[1].max(), '-o', label="Struct {0}".format(inpfam1))
+	plt.plot(lines[0], lines[2]/lines[2].max(), '-o', label="Struct {0}".format(inpfam2))
+	plt.plot(lines[0], lines[3]/lines[3].max(), '-o', label="DCA {0}".format(inpfam1))
+	plt.plot(lines[0], lines[4]/lines[4].max(), '-o', label="DCA {0}".format(inpfam2))
+	plt.plot(lines[0], lines[5]/lines[5].max(), '-o', label="true in DCA {0}".format(inpfam1))
+	plt.plot(lines[0], lines[6]/lines[6].max(), '-o', label="true in DCA {0}".format(inpfam2))
+	plt.ylabel("Size of largest component")
+	plt.xlabel("Cutoff connections in interface graph [A]")
+	plt.legend()
+	plt.savefig("prova.png")
 
 	exit(1)	
 
@@ -496,15 +786,14 @@ def main_graphmodel(options):
 	print(interaction_list_1)
 	print(interaction_strength_1)
 
-	number_of_first_vertices = 10
 	vertices = sorted(list(set([x[0] for x in interaction_list]) | set([x[1] for x in interaction_list])))
 	pair_list = sorted(list(zip(interaction_list_1, interaction_strength_1)), key= lambda x : x[1])
 	drawn_vertices = []
 	for x in pair_list:
 		for e in x[0]:
-			if e not in drawn_vertices and len(drawn_vertices) < 10:
+			if e not in drawn_vertices and len(drawn_vertices) < vertices_limit:
 				drawn_vertices.append(e)
-		if len(drawn_vertices) == 10:
+		if len(drawn_vertices) == vertices_limit:
 			break
 
 	draw_interaction_list_1 = []
@@ -542,7 +831,7 @@ def main_graphmodel(options):
 		if dca1 <= offset and dca2 > offset:
 			if dca1 not in prediction_vertices_1:
 				prediction_vertices_1.append(dca1)
-			if len(prediction_vertices_1) == 10:
+			if len(prediction_vertices_1) == vertices_limit:
 				break
 	draw_interaction_list_1 = []
 	draw_interaction_strength_1 = []
