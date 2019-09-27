@@ -1,6 +1,6 @@
 from support import *
 
-def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder, dca_filename, pdbmap_filename, main_backmap_table, with_offset=True):
+def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder, dca_filename, pdbmap_filename, main_backmap_table, with_offset=True, percdist=False):
 	pairs = []
 	for pdbname in mind_pdbs:
 		chains = {}
@@ -162,18 +162,30 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 		with open(results_folder + '/group_definitions.txt', 'w') as gf:
 			gf.write('group 0: all-vs-all\n')
 		filename_lists.append(filenames_list)
+		descrs.append('all-vs-all')
 
 
 	for fli, flist in enumerate(filename_lists):
+		if percdist:
+			if dca_filename and os.path.exists(dca_filename):
+				out_filename_3 = results_folder + "/{0}_{1}_g{2}_correlation_percdist_wDCA.txt".format(inpfam1, inpfam2, fli)
+				out_filename_4 = results_folder + "/{0}_{1}_g{2}_correlation_percdist_wDCA_fmt.txt".format(inpfam1, inpfam2, fli)
+#				print("\n\nStrongest DCA signals mapped on average pair distance, group {0} ({1}):".format(fli, descrs[fli]))
+				sorted_dca_filename = os.path.dirname(dca_filename) + '/.sorted_' + os.path.basename(dca_filename)
+			else:
+				out_filename_3 = results_folder + "/{0}_{1}_g{2}_correlation_percdist.txt".format(inpfam1, inpfam2, fli)
+#				print("\n\nFirst DCA paired indices mapped on average pair distance, group {0} ({1}):".format(fli, descrs[fli]))
+			out_filename_fig_2 = results_folder + "/{0}_{1}_g{2}_correlation_percdist.png".format(inpfam1, inpfam2, fli)
 		if dca_filename and os.path.exists(dca_filename):
-			out_filename = results_folder + "/{0}_{1}_g{2}_correlation_wDCA.txt".format(inpfam1, inpfam2, fli)
-			out_filename_2 = results_folder + "/{0}_{1}_g{2}_correlation_wDCA_fmt.txt".format(inpfam1, inpfam2, fli)
+			out_filename = results_folder + "/{0}_{1}_g{2}_correlation_mindist_wDCA.txt".format(inpfam1, inpfam2, fli)
+			out_filename_2 = results_folder + "/{0}_{1}_g{2}_correlation_mindist_wDCA_fmt.txt".format(inpfam1, inpfam2, fli)
 			print("\n\nStrongest DCA signals mapped on closest residue pairs, group {0} ({1}):".format(fli, descrs[fli]))
 			sorted_dca_filename = os.path.dirname(dca_filename) + '/.sorted_' + os.path.basename(dca_filename)
 		else:
-			out_filename = results_folder + "/{0}_{1}_g{2}_correlation.txt".format(inpfam1, inpfam2, fli)
+			out_filename = results_folder + "/{0}_{1}_g{2}_correlation_mindist.txt".format(inpfam1, inpfam2, fli)
 			print("\n\nFirst DCA paired indices mapped on closest residue pairs, group {0} ({1}):".format(fli, descrs[fli]))
-		
+		out_filename_fig = results_folder + "/{0}_{1}_g{2}_correlation_mindist.png".format(inpfam1, inpfam2, fli)
+
 		distcomp = np.ones((len(flist), totlength, totlength))*10000
 		rdict = {}
 		rdict2 = {}
@@ -199,21 +211,81 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 	
 		i = 0
 		imax = 50
+		if percdist:
+			if with_offset:
+				distfig = np.ones((offset, distcomp.shape[1]-offset))/2
+			else:
+				distfig = np.ones(distcomp.shape[1:])/2
+			if dca_filename and os.path.exists(dca_filename):
+				out_file_4 = open(out_filename_4, 'w')
+			with open(out_filename_3, 'w') as out_file:
+				for nl, v in enumerate(recs):
+					ind1, ind2, score = v
+					if with_offset:
+						ind1a = ind1 - 1
+						ind2a = ind2 - offset - 1
+						if not (ind1 <= offset and ind2 > offset):
+							continue
+					else:
+						ind1a = ind1 - 1
+						ind2a = ind2 - 1
+					if np.min(distcomp[:, ind1-1, ind2-1]) == 10000:
+						perc = -1
+						distfig[ind1a, ind2a] = 0.25
+					else:
+						sigmoid_dist = [linear_response(x) for x in distcomp[:, ind1-1, ind2-1]]
+						perc = sum(sigmoid_dist)/len(sigmoid_dist)
+						distfig[ind1a, ind2a] = 0.5 + perc/2
+#					print(with_offset, offset, ind1, ind2, ind1a, ind2a, distfig[ind1a, ind2a])
+					if perc >= 0:
+						i += 1
+						if score == "":
+							optarg = ""
+						else:
+							optarg = "{0: .5f}\t{1}".format(score, nl)
+						if i < imax:
+							if i == 1:
+								out_file.write("# Files can be retrieved in {0}\n".format(os.path.dirname(flist[0])))
+						out_file.write("{0}\t{1}\t{2}\t{3}\n".format(ind1, ind2, perc, optarg))
+						if dca_filename and os.path.exists(dca_filename):
+							out_file_4.write("{0}\t{1}\t{2}\t{3}\n".format(ind1, ind2, score, perc))
+
+#			print(distfig)
+#			with open("d.txt", 'w') as f:
+#				for i in range(distfig.shape[0]):
+#					for j in range(distfig.shape[1]):
+#						f.write("{0}\t{1}\t{2}\n".format(i, j, distfig[i,j]))
+			plt.imshow(distfig, cmap='RdGy_r', interpolation='none', vmin=0, vmax=1)
+			plt.savefig(out_filename_fig_2)
+
+		i = 0	
 		if dca_filename and os.path.exists(dca_filename):
 			out_file_2 = open(out_filename_2, 'w')
 		with open(out_filename, 'w') as out_file:
+			if with_offset:
+				distfig = np.ones((offset, distcomp.shape[1]-offset))/2
+			else:
+				distfig = np.ones(distcomp.shape[1:])/2
 			for nl, v in enumerate(recs):
 				ind1, ind2, score = v
-				if with_offset and (not (ind1 <= offset and ind2 > offset)):
-					continue
+				if with_offset:
+					ind1a = ind1 - 1
+					ind2a = ind2 - offset - 1
+					if not (ind1 <= offset and ind2 > offset):
+						continue
+				else:
+					ind1a = ind1 - 1
+					ind2a = ind2 - 1
 				if np.min(distcomp[:, ind1-1, ind2-1]) == 10000:
 					argmind = ""
 					argmind2 = ""
+					distfig[ind1a, ind2a] = 0.25
 				else:
 					nfmin = np.argmin(distcomp[:, ind1-1, ind2-1])
 					argmind = (flist[nfmin], rdict[(flist[nfmin], ind1, ind2)], score)
 					argmind2 = (ind1, ind2, score, rdict2[(flist[nfmin], ind1, ind2)])
-	
+					distfig[ind1a, ind2a] = 0.5 + linear_response(np.min(distcomp[:, ind1-1, ind2-1]))
+
 				if argmind:
 					i += 1
 					if argmind[2] == "":
@@ -224,12 +296,15 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 						print("{0}\t{1}\t{2}".format(os.path.basename(argmind[0]), argmind[1], optarg))
 						if i == 1:
 							out_file.write("# Files can be retrieved in {0}\n".format(os.path.dirname(argmind[0])))
-					out_file.write("{0}\t{1}\t{2}\n".format(os.path.basename(argmind[0]), argmind[1], optarg))
+						out_file.write("{0}\t{1}\t{2}\n".format(os.path.basename(argmind[0]), argmind[1], optarg))
 					if dca_filename and os.path.exists(dca_filename):
 						out_file_2.write("{0}\t{1}\t{2}\t{3}\t{4:30}\t{5}\t{6}\n".format(argmind2[0], argmind2[1], argmind2[2], argmind2[3][0], argmind2[3][1], argmind2[3][2], argmind2[3][3]))
-	
+		
 		print("\nFind this table in {0}".format(out_filename))
 		if dca_filename and os.path.exists(dca_filename):
 			out_file_2.close()
 			print("\nand {0}".format(out_filename_2))
 		print("\n\n")
+
+		plt.imshow(distfig, cmap='RdGy_r', interpolation='none', vmin=0, vmax=1)
+		plt.savefig(out_filename_fig)

@@ -12,6 +12,7 @@ import Bio.PDB
 from sklearn.cluster import DBSCAN
 from sklearn import metrics
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 from Bio.SubsMat import MatrixInfo as matlist
 import numpy as np
 from collections import Mapping, Container
@@ -19,6 +20,19 @@ from sys import getsizeof
 import shutil
 import re
 #import objgraph
+
+
+def linear_response(d, a=8, b=12):
+	if b<=a:
+		print("Error: must be a < b")
+		exit(1)
+	if d<=a:
+		return 1
+	elif d>=b:
+		return 0
+	else:
+		return 1 - (d-a)/(b-a)
+	
 
 def from3to1(resname, include_MSEs=False):
 	f3t1 = {'ALA' : 'A',

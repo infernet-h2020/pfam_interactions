@@ -80,7 +80,7 @@ def parallel_submission_routine(data):
 
 		int_filenames = interactions.compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uniprot_restypes, pdb_dca_resids, dca_model_length, allowed_residues, inch1, inch2, results_folder, cache_folder, self_inter=self_inter, compress_distmx=compress_distmx)
 		interaction_filenames |= int_filenames
-	return interaction_filenames, main_backmap_table
+	return interaction_filenames, main_backmap_table, failed_pdbs
 
 
 def main_mindistance(options):
@@ -108,6 +108,7 @@ def main_mindistance(options):
 	nprocs = options['nprocesses']
 	compress_distmx = options['compress_distmx']
 	resolution_threshold = options['resolution_threshold']
+	average_distance = options['average_distance']
 	inch1 = ''
 	inch2 = ''
 
@@ -296,6 +297,7 @@ def main_mindistance(options):
 	interaction_filenames = set()
 	for s in pool_outputs:
 		interaction_filenames |= s[0]
+		failed_pdbs |= s[2]
 		for x in s[1]:
 			main_backmap_table[x] = s[1][x]
 
@@ -347,6 +349,6 @@ def main_mindistance(options):
 		print(interpolated_pdbs_string+"\n")
 
 	if inpfam:
-		mindistance.mindistance(mind_pdbs, inpfam, inpfam, restrict_comparison, results_folder, dca_filename, pfam_pdbmap, main_backmap_table, with_offset=False)
+		mindistance.mindistance(mind_pdbs, inpfam, inpfam, restrict_comparison, results_folder, dca_filename, pfam_pdbmap, main_backmap_table, with_offset=False, percdist=average_distance)
 	else:
-		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder, dca_filename, pfam_pdbmap, main_backmap_table)
+		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder, dca_filename, pfam_pdbmap, main_backmap_table, percdist=average_distance)
