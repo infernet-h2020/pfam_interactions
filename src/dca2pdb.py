@@ -124,7 +124,7 @@ def main_parser():
 					set_of_pfams.add(f[:-1])
 					break
 		for ippff, ppff1 in enumerate(sorted(list(set_of_pfams))):
-			inpfam_inpfam1_inpfam2.append((ppff1, None, None))
+			inpfam_inpfam1_inpfam2.append((None, ppff1, ppff1))	# same AND intra AND inter
 			for ppff2 in sorted(list(set_of_pfams))[ippff+1:]:
 				inpfam_inpfam1_inpfam2.append((None, ppff1, ppff2))
 		printinfo = True

@@ -24,7 +24,7 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 	text = [l for l in one_file.readlines() if l.strip()]
 	if with_offset:
 		offset = int(text[-1].split()[0])
-	totlength = int(text[-1].split()[1])
+	totlength = int(text[-1].split()[0]) + max([int(x.split()[1]) for x in text]) - min([int(x.split()[1]) for x in text]) + 1
 
 	recs = []
 	if dca_filename and os.path.exists(dca_filename):
@@ -141,6 +141,7 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 							print("Error (syntax: intra groups should not intersect): in {0}, line\n{1}".format(restrict_comparison, line))
 							exit(1)
 						for fname in filenames_list:
+							print(fname)
 							if (fname.split('_')[-3][0] in group1 and fname.split('_')[-2][0] in group2) or (fname.split('_')[-2][0] in group2 and fname.split('_')[-3][0] in group1):
 								flist.append(fname)
 					else:

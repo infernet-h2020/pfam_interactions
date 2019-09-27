@@ -12,14 +12,14 @@ def calculate_matches(pdbname, inpfam, inpfam1, inpfam2, pdb_pfam_filename):
 		pdbc = fields[2] + '_' + fields[5]
 		pfam_acc = fields[3]
 		uniprot_acc = fields[4]
-		if (inpfam and pfam_acc != inpfam) or (inpfam1 and (pfam_acc != inpfam1 and pfam_acc != inpfam2)):
+		if (inpfam and pfam_acc != inpfam) or (inpfam1 and (pfam_acc != inpfam1 and pfam_acc != inpfam2)) or (pfam_in_pdb[0] and pfam_in_pdb[1]):
 			continue
-		elif inpfam1 and pfam_acc == inpfam1:
+		elif inpfam1 and not pfam_in_pdb[0] and pfam_acc == inpfam1:
 			pfam_in_pdb[0] = (pfam_acc, uniprot_acc)
 		elif inpfam1 and pfam_acc == inpfam2:
 			pfam_in_pdb[1] = (pfam_acc, uniprot_acc)
 		elif inpfam:
-			pfam_in_pdb.append((pfam_acc, uniprot_acc))
+			pfam_in_pdb[0] = (pfam_acc, uniprot_acc)
 		print(line)
 #		print(pfam_in_pdb)
 	pfam_in_pdb_correct = []
@@ -37,4 +37,5 @@ def calculate_matches(pdbname, inpfam, inpfam1, inpfam2, pdb_pfam_filename):
 		print("No Pfams selected!")
 		exit(1)
 
+	print("PFAM_IN_PDB", pfam_in_pdb)
 	return pfam_in_pdb

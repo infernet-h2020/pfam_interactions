@@ -1,0 +1,1 @@
+dca2pdb -pf1 PF04940 -pf2 PF00563 -mind mind.txt -restrict restrict_prova.txt -avg_dist
