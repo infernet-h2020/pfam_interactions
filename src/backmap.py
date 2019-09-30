@@ -44,6 +44,8 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 		colors = [0,1,3,4,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]	# no grey (2), no white (8)
 		with open(tcl_output_filename, 'w') as tcl_output_file:
 			tcl_output_file.write("display resetview\n")
+			tcl_output_file.write("display projection Orthographic\n")	# Ortographic projection
+			tcl_output_file.write("display depthcue off\n")			# No depth shade
 			tcl_output_file.write("color Display Background white\n")
 			tcl_output_file.write("mol new {{{0}}} type {{pdb}} first 0 last -1 step 1 waitfor 1\n".format(pdb_path))
 			lastipfd = 0
@@ -52,10 +54,12 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 				chname = pfd[1][0]
 				init = int(pfd[1][1][0])
 				end = int(pfd[1][1][1])
+				tcl_output_file.write("# Pfam {0}\n".format(pfd[0]))
 				tcl_output_file.write("mol modselect {0} 0 chain {1} and resid {2} to {3}\n".format(ipfd, chname, init, end))
 				tcl_output_file.write("mol modstyle {0} 0 Licorice 0.300000 12.000000 12.000000\n".format(ipfd))
 				tcl_output_file.write("mol modcolor {0} 0 ColorID {1}\n".format(ipfd, colors[ipfd]))
 				lastipfd = ipfd
+			tcl_output_file.write("# Trace \n")
 			tcl_output_file.write("mol addrep 0\n")
 			tcl_output_file.write("mol modstyle {0} 0 Trace 0.300000 12.000000\n".format(lastipfd+1))
 			tcl_output_file.write("mol modcolor {0} 0 ColorID 2\n".format(lastipfd+1))
@@ -107,7 +111,10 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 		bundle = pickle.load(open(pickle_filename, 'rb'))
 		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
 		backmap_table = print_summary(pdb_dca_resids, pdb_uniprot_resids, backmap_filename)
-		tcl_output_filename = results_folder + "/domain_visualization.tcl"
+		if len(pfam_in_pdb) == 1:
+			tcl_output_filename = results_folder + "/{0}_domain_visualization.tcl".format(pfam_in_pdb[0][0])
+		elif len(pfam_in_pdb) == 2:
+			tcl_output_filename = results_folder + "/{0}_{1}_domain_visualization.tcl".format(pfam_in_pdb[0][0], pfam_in_pdb[1][0])
 		vmd_backmap_script(backmap_table, tcl_output_filename, pdb_path)
 		print("To visualize the domains: vmd -e {0}".format(tcl_output_filename))
 		print("")
