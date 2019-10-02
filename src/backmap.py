@@ -299,4 +299,77 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 	pickle.dump((dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table), open(pickle_filename, 'wb'))
 
 	print("")
-	return dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table 
+	return dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table
+
+def backmap_alignment(aln_path, pdb_path, chains, uniprot_id):
+	"""Only the positions which correspond to DCA columns must be included in the alignment"""
+
+	def gap_function(x, y):  # x is gap position in seq, y is gap length
+		if y == 0:  # No gap
+			return 0
+		elif y == 1:  # Gap open penalty
+			return -2
+		return - (2 + y/4.0 + log(y)/2.0)
+
+
+	detected_aln_format = None
+	if aln_path.split('.')[-1] in ['fasta, fa']:
+		detected_aln_format = 'fasta'
+	elif aln_path.split('.')[-1] in ['stockholm, sto']:
+		detected_aln_format = 'stockholm'
+	else:
+		with open(aln_path) as aln_f:
+			for line in aln_f:
+				if not line:
+					continue
+				if line.startswith('>'):
+					detected_aln_format = 'fasta'
+				elif line.startswith('# STOCKHOLM') or line.startswith('#=GF ID'):
+					detected_aln_format = 'stockholm'
+				break
+
+	aln = []
+	if not detected_aln_format:
+		print('Error (align format not detected): could not detect format of alignment {0}'.format(aln_path))
+	elif detected_aln_format == 'fasta':
+		with open(aln_path) as aln_f:
+			tmp_str = ''
+			for line in aln_f:
+				if not line:
+					continue
+				if line.startswith('>'):
+					if tmp_str:
+						aln.append(list(tmp_str))
+				else:
+					tmp_str += line.strip()
+		if tmp_str:
+			aln.append(list(tmp_str))
+			
+	elif detected_aln_format == 'stockholm':
+		with open(aln_path) as aln_f:
+			for line in aln_f:
+				if not line:
+					continue
+				if not line.startswith('#') and line.strip() != '//':
+					aln.append(list(line.split()[1]))
+
+	carr = np.array(aln)
+	del aln
+
+	# Remove columns for which the first sequence have a gap
+	del_col = []
+	for i in carr.shape[1]:
+		if carr[0,1].lower() == carr[0,1]:	# Removes small letters, '.' and '-': correct!
+			del_col.append(i)
+	
+	np.delete(carr, del_col, axis=1)
+	dca_model_length = corr.shape[1]
+
+	str_seq = ''.join([x for x in carr[0,:]])	# All these characters must be mapped
+	pdb_seqs = extract_sequence_from_pdb(pdb_path)
+
+	for ch in pdb_seqs:
+		str_pdb_aln = Bio.pairwise2.align.localdc(str_seq, pdb_seqs[ch], matlist.blosum62, gap_function, gap_function)
+
+
+

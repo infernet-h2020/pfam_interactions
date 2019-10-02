@@ -25,9 +25,12 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 	if with_offset:
 		offset = int(text[-1].split()[0])
 	totlength = int(text[-1].split()[0]) + max([int(x.split()[1]) for x in text]) - min([int(x.split()[1]) for x in text]) + 1
-
+	len1 = int(text[-1].split()[0])
+	len2 = max([int(x.split()[1]) for x in text]) - min([int(x.split()[1]) for x in text]) + 1
+	print(len1, len2, offset)
 	recs = []
 	if dca_filename and os.path.exists(dca_filename):
+		dca_fig = results_folder + "/{0}_{1}_dca_prediction.png".format(inpfam1, inpfam2)
 		with open(dca_filename) as dca_file:
 			for line in dca_file:
 				if not line or line.strip().startswith("#"):
@@ -36,6 +39,20 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 				recs.append((int(fields[0]), int(fields[1]), float(fields[2])))
 #				print(dca_filename, int(fields[0]), int(fields[1]), float(fields[2]))
 		recs = sorted(recs, key= lambda x: -x[2])
+
+		nprecs = np.ones((len1,len2))*-1000
+		for r in recs:
+			if with_offset:
+				if not (r[0] <= offset and r[1] > offset):
+					continue
+				o = offset
+			else:
+				o = 0
+#			print(r[0]-1, r[1]-1-o)
+			nprecs[r[0]-1, r[1]-1-o] = r[2]
+		vmax = recs[int(len(recs)/100)][2]	# The top 1% predictions will be max-colored
+		plt.imshow(nprecs, cmap='Blues', interpolation='none', vmin=0, vmax=vmax)
+		plt.savefig(dca_fig)
 	else:
 		for i in range(1, totlength+1):
 			for j in range(i+1, totlength+1):
@@ -234,7 +251,7 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 						perc = -1
 						distfig[ind1a, ind2a] = 0.25
 					else:
-						sigmoid_dist = [linear_response(x) for x in distcomp[:, ind1-1, ind2-1]]
+						sigmoid_dist = [linear_response(x, a=8, b=8) for x in distcomp[:, ind1-1, ind2-1]]
 						perc = sum(sigmoid_dist)/len(sigmoid_dist)
 						distfig[ind1a, ind2a] = 0.5 + perc/2
 #					print(with_offset, offset, ind1, ind2, ind1a, ind2a, distfig[ind1a, ind2a])
@@ -285,7 +302,7 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 					nfmin = np.argmin(distcomp[:, ind1-1, ind2-1])
 					argmind = (flist[nfmin], rdict[(flist[nfmin], ind1, ind2)], score)
 					argmind2 = (ind1, ind2, score, rdict2[(flist[nfmin], ind1, ind2)])
-					distfig[ind1a, ind2a] = 0.5 + linear_response(np.min(distcomp[:, ind1-1, ind2-1]))
+					distfig[ind1a, ind2a] = 0.5 + linear_response(np.min(distcomp[:, ind1-1, ind2-1]), a=4.5, b=8)
 
 				if argmind:
 					i += 1
@@ -307,5 +324,5 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 			print("\nand {0}".format(out_filename_2))
 		print("\n\n")
 
-		plt.imshow(distfig, cmap='RdGy_r', interpolation='none', vmin=0, vmax=1)
+		plt.imshow(distfig, cmap='PRGn', interpolation='none', vmin=0, vmax=1)
 		plt.savefig(out_filename_fig)

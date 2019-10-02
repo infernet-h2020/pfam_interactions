@@ -22,9 +22,9 @@ import re
 #import objgraph
 
 
-def linear_response(d, a=8, b=12):
-	if b<=a:
-		print("Error: must be a < b")
+def linear_response(d, a=8, b=8):
+	if b<a:
+		print("Error: must be a <= b")
 		exit(1)
 	if d<=a:
 		return 1
@@ -423,3 +423,36 @@ def check_pdb_quality(pdb_path, resolution_threshold):
 					return False
 				print("PDB good!")
 				return True
+
+def extract_sequence_from_pdb(pdb_path, uniprot_spec=False):
+	pdb_seqs = {}
+	uniprot = {}
+	with open(pdb_path) as pdb_f:
+		for line in pdb_f:
+			if not line:
+				continue
+			if line.startswith('DBREF'):
+				fields = line.split()
+				db = fields[5]
+				if unp != 'UNP':
+					continue
+				pdbch = fields[2]
+				unp_name = fields[6]
+				unp_init = int(fields[8])
+				unp_end = int(fields[9])
+				uniprot[pdbch] = (unp_name, (unp_init, unp_end))
+				continue
+			if not line.startswith('ATOM'):
+				continue
+			res3 = line[17:20]
+			ch = line[21]
+			if ch not in pdb_seqs:
+				pdb_seqs[ch] = ''
+			res1 = from3to1(res3)
+			altloc = line[16].strip()
+			if not altloc:
+				pdbseqs[ch] += res1
+				resid = int(line[22:26].strip())
+	if uniprot_spec:
+		return pdb_seqs, uniprot
+	return pdb_seqs
