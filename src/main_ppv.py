@@ -23,10 +23,15 @@ def ppv(interaction_filename, dca_filename, dist_thr, distance_type, results_fol
 			else:
 				d[(int(fields[0]), int(fields[1]))] = float(fields[6+distance_types.index(distance_type)])
 
+	print(d)
+
 	results_filename = results_folder + os.path.basename(dca_filename[:-4]) + 'ppv.txt'
+	lines_file = int(subprocess.check_output(["wc", "-l", results_filename]).split()[0])
+	print("LINES", lines_file)
 	with open(dca_filename) as dca_file:
 		n_contacts = 0
 		ppv_score = []
+		tl = 0
 		with open(results_filename, 'w') as results_file:
 			for nl, line in enumerate(dca_file):
 				if not line:
@@ -39,10 +44,11 @@ def ppv(interaction_filename, dca_filename, dist_thr, distance_type, results_fol
 					n_contacts += 1
 				else:
 					contact = False
-				results_file.write("{0:6} {1:6} {2:10.3f} {3:10.3f} {4:7} {5:5} {6:10.3f}\n".format(fields[0], fields[1], fields[2], d[(int(fields[0]), int(fields[1]))], contact, n_contacts, n_contacts/(nl+1)))
-				if nl < max(20,min(100,len(dca_file)/10)):
-					print("{0:6} {1:6} {2:10.3f} {3:10.3f} {4:7} {5:5} {6:10.3f}".format(fields[0], fields[1], fields[2], d[(int(fields[0]), int(fields[1]))], contact, n_contacts, n_contacts/(nl+1)))
-					ppv_score.append(n_contacts/(nl+1))
+				tl += 1
+				results_file.write("{0:6} {1:6} {2:10.3f} {3:10.3f} {4} {5:5} {6:10.3f}\n".format(fields[0], fields[1], float(fields[2]), d[(int(fields[0]), int(fields[1]))], contact, n_contacts, n_contacts/(tl+1)))
+				if tl < max(20,min(100,lines_file/10)):
+					print("{0:6} {1:6} {2:10.3f} {3:10.3f} {4} {5:5} {6:10.3f}".format(fields[0], fields[1], float(fields[2]), d[(int(fields[0]), int(fields[1]))], contact, n_contacts, n_contacts/(tl+1)))
+					ppv_score.append(n_contacts/(tl+1))
 
 	results_figname = results_folder + os.path.basename(dca_filename[:-4]) + 'ppv.png'
 	ppv_x = [x for x in range(1, len(ppv_score)+1)]
@@ -50,5 +56,5 @@ def ppv(interaction_filename, dca_filename, dist_thr, distance_type, results_fol
 	plt.plot(ppv_x, ppv_score)
 	plt.savefig(results_figname)
 
-	print("See figure relative to these data at {0}".figure(results_figname))
+	print("See figure relative to these data at {0}".format(results_figname))
 #	plt.show()
