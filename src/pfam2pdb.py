@@ -90,7 +90,7 @@ def main_parser():
 		if os.path.exists(options['output_path']):
 			if options['output_path'][-1] != '/':
 				options['output_path'] += '/'
-			options['results_folder'] = options['output_path'] + 'dca2pdb_results_' + datetime.datetime.now().strftime("%Y%m%d") + "/"
+			options['results_folder'] = options['output_path'] + 'pfam2pdb_results_' + datetime.datetime.now().strftime("%Y%m%d") + "/"
 			if not os.path.exists(options['results_folder']):
 				os.mkdir(options['results_folder'])
 		else:
