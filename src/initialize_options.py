@@ -13,6 +13,7 @@ def initialize_options(version, rel_path=False):
 	else:
 		this_path = os.path.dirname(os.path.abspath(__file__)) + '/'
 
+	print("THIS PATH", this_path)
 
 	# Hardcoded paths
 	options['src']                              = this_path
