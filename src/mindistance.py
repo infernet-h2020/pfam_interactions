@@ -27,7 +27,6 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 	totlength = int(text[-1].split()[0]) + max([int(x.split()[1]) for x in text]) - min([int(x.split()[1]) for x in text]) + 1
 	len1 = int(text[-1].split()[0])
 	len2 = max([int(x.split()[1]) for x in text]) - min([int(x.split()[1]) for x in text]) + 1
-	print(len1, len2, offset)
 	recs = []
 	if dca_filename and os.path.exists(dca_filename):
 		dca_fig = results_folder + "/{0}_{1}_dca_prediction.png".format(inpfam1, inpfam2)

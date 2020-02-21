@@ -111,10 +111,10 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 		bundle = pickle.load(open(pickle_filename, 'rb'))
 		dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
 		backmap_table = print_summary(pdb_dca_resids, pdb_uniprot_resids, backmap_filename)
-		if len(pfam_in_pdb) == 1:
-			tcl_output_filename = results_folder + "/{0}_domain_visualization.tcl".format(pfam_in_pdb[0][0])
-		elif len(pfam_in_pdb) == 2:
-			tcl_output_filename = results_folder + "/{0}_{1}_domain_visualization.tcl".format(pfam_in_pdb[0][0], pfam_in_pdb[1][0])
+		if len(target_pfam_accs) == 1:
+			tcl_output_filename = results_folder + "/{0}_domain_visualization.tcl".format(target_pfam_accs[0][0])
+		elif len(target_pfam_accs) == 2:
+			tcl_output_filename = results_folder + "/{0}_{1}_domain_visualization.tcl".format(target_pfam_accs[0][0], target_pfam_accs[1][0])
 		vmd_backmap_script(backmap_table, tcl_output_filename, pdb_path)
 		print("To visualize the domains: vmd -e {0}".format(tcl_output_filename))
 		print("")
@@ -293,7 +293,10 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 
 #	print(pickle_filename)
 	backmap_table = print_summary(pdb_dca_resids, pdb_uniprot_resids, backmap_filename)
-	tcl_output_filename = results_folder + "/domain_visualization.tcl"
+	if len(target_pfam_accs) == 1:
+		tcl_output_filename = results_folder + "/{0}_domain_visualization.tcl".format(target_pfam_accs[0][0])
+	elif len(target_pfam_accs) == 2:
+		tcl_output_filename = results_folder + "/{0}_{1}_domain_visualization.tcl".format(target_pfam_accs[0][0], target_pfam_accs[1][0])
 	print("To visualize the domains: vmd -e {0}".format(tcl_output_filename))
 	vmd_backmap_script(backmap_table, tcl_output_filename, pdb_path)
 	pickle.dump((dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table), open(pickle_filename, 'wb'))
