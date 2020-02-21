@@ -10,12 +10,12 @@ tools for mapping DCA predictions onto PDB structures.
 * db/ contains the **benchmark tables** (interaction\_database/) mapping each Pfam domain or pair of Pfam domains
 to the respective PDB structures. It is also the location where helper files from Pfam are downloaded (external\_resources/) 
 
-* src/ contains the **dca2pdb** tool suite, which allows a direct mapping of any DCA prediction based on 
+* src/ contains the **pfam2pdb** tool suite, which allows a direct mapping of any DCA prediction based on 
 Pfam's multiple sequence alignments to the chosen PDB structure
 
-* examples/ contains several **examples** for the correct use of all dca2pdb options (please refer to src/README.md)
+* examples/ contains several **examples** for the correct use of all pfam2pdb options (please refer to src/README.md)
 
-* .cache/ is the location where dca2pdb will store precomputed results to speed up further queries
+* .cache/ is the location where pfam2pdb will store precomputed results to speed up further queries
 
 
 ## Installation

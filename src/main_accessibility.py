@@ -50,3 +50,34 @@ def main_accessibility(options):
 	dca_model_length, uniprot_restypes, uniprot_pdb_resids, pdb_uniprot_resids, dca_pdb_resids, pdb_dca_resids, allowed_residues, backmap_table = bundle
 
 	SASA = accessibility.compute_accessibility(pdbname, pdb_path, pdb_dca_resids, backmap_table, allowed_residues, vmd_path, results_folder, accessibilities_by_domain)
+
+	if inpfam1 and inpfam2:
+		n1, n2 = 0, 0
+		avg_SASA1 = -np.ones(dca_model_length[inpfam1])
+		avg_SASA2 = -np.ones(dca_model_length[inpfam2])
+		avg_SASA = -np.ones((dca_model_length[inpfam1], dca_model_length[inpfam2]))
+		solvation_map_fig = results_folder + '/{0}_{1}_{2}_avg_solvent_accessibility.png'.format(pdbname, inpfam1, inpfam2)
+		for pfam_acc in SASA:
+			if inpfam1 in pfam_acc:
+				n1 += 1
+				for k in SASA[pfam_acc]:
+					dca_i, _, _ = k
+					if avg_SASA1[dca_i-1] == -1:
+						avg_SASA1[dca_i-1] = 0
+					avg_SASA1[dca_i-1] += SASA[pfam_acc][k][1]
+			if inpfam2 in pfam_acc:
+				n2 += 1
+				for k in SASA[pfam_acc]:
+					dca_i, _, _ = k
+					if avg_SASA2[dca_i-1] == -1:
+						avg_SASA2[dca_i-1] = 0
+					avg_SASA2[dca_i-1] += SASA[pfam_acc][k][1]
+		for i in range(avg_SASA1.shape[0]):
+			for j in range(avg_SASA2.shape[0]):
+				if avg_SASA1[i] == -1 or avg_SASA2[j] == -1:
+					avg_SASA[i,j] = -0.5
+				else:
+					avg_SASA[i,j] = (avg_SASA1[i] * avg_SASA2[j]) / (n1 * n2)
+
+		plt.imshow(avg_SASA, cmap='BrBG', interpolation='none', vmin=-1, vmax=1)
+		plt.savefig(solvation_map_fig)

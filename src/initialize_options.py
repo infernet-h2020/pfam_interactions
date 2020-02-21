@@ -13,6 +13,7 @@ def initialize_options(version, rel_path=False):
 	else:
 		this_path = os.path.dirname(os.path.abspath(__file__)) + '/'
 
+	print("THIS PATH", this_path)
 
 	# Hardcoded paths
 	options['src']                              = this_path
@@ -39,7 +40,11 @@ def initialize_options(version, rel_path=False):
 
 	# Hardcoded options
 	options['indexing']                       = True
+	pwd = os.getcwd()
 	for p in [options['external_resources'], options['cache'], options['pdb_files_ext_path'], options['pfam_uniprot_stockholm_relpath'], options['results_folder']]:
+		tp = os.path.dirname(os.path.abspath(__file__)) + '/'
+		os.chdir(tp)
 		if not os.path.exists(p):
 			os.mkdir(p)
+	os.chdir(pwd)
 	return options

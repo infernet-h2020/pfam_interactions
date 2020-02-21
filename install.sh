@@ -31,8 +31,8 @@ mkdir bin/
 python3_path=`which python3`
 if [[ "${python3_path}" != "" ]]
 then
-	echo "#!${python3_path}" | cat - src/dca2pdb.py > bin/dca2pdb
-	chmod 777 bin/dca2pdb
+	echo "#!${python3_path}" | cat - src/pfam2pdb.py > bin/pfam2pdb
+	chmod 777 bin/pfam2pdb
 fi
 
 echo "Upgrading pip..."

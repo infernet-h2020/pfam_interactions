@@ -30,7 +30,7 @@ DCA is often used in order to find contacts within a single protein domain.
 As an example, let's take Pfam PF00940 and PDB 3e2e. With the command
 
 `
-python3 dca2pdb.py -pf PF02874 -pdb 2wss
+python3 pfam2pdb.py -pf PF02874 -pdb 2wss
 `
 
 the backmap algorithm finds all occurrences of the given Pfam family in the given PDB structure,
@@ -128,7 +128,7 @@ This is an extract from "PF02874\_PF02874\_2wss\_A1\_A1.txt":
 ```
 
 It should be noted that, so far, we haven't made use of any file containing DCA contact predictions.
-Indeed, **as long as dca2pdb runs the same version of Pfam used in the DCA predictions**, the program does
+Indeed, **as long as pfam2pdb runs the same version of Pfam used in the DCA predictions**, the program does
 not need DCA output files to run.
 
 ### True/false contacts and PPV calculation
@@ -161,7 +161,7 @@ distance taken from a PDB structure of choice, e.g. 5dc0.
 This can be accomplished with
 
 `
-python3 dca2pdb.py -pf1 PF00017 -pf2 PF00041 -pdb 5dc0
+python3 pfam2pdb.py -pf1 PF00017 -pf2 PF00041 -pdb 5dc0
 `
 
 As in the case of single-domain interaction, the program will report on stdout information about
@@ -204,7 +204,7 @@ all structures containing the two specified Pfam domains.
 As an example, we type:
 
 `
-python3 dca2pdb.py -pf1 PF00017 -pf2 PF00041 -dca ../examples/plmDCA_outputs/PF00017_PF00041_plmdca.txt -mind all
+python3 pfam2pdb.py -pf1 PF00017 -pf2 PF00041 -dca ../examples/plmDCA_outputs/PF00017_PF00041_plmdca.txt -mind all
 `
 
 Note the absence of the `-pdb` keyword, which now is overridden by `-mind`, and the presence of -dca,
@@ -279,7 +279,7 @@ As an example, inspect `support_files/template_pdb_list_for_mindist.txt`.
 This command will then take into account the first five structures listed above:
 
 `
-python3 dca2pdb.py -pf1 PF00017 -pf2 PF00041 -dca ../examples/plmDCA_outputs/PF00017_PF00041_plmdca.txt -mind support_files/template_pdb_list_for_mindist.txt
+python3 pfam2pdb.py -pf1 PF00017 -pf2 PF00041 -dca ../examples/plmDCA_outputs/PF00017_PF00041_plmdca.txt -mind support_files/template_pdb_list_for_mindist.txt
 `
 
 To conclude this section, we assume the case the user would like to know which and how many structures
@@ -287,7 +287,7 @@ the program will process, before actually starting the (time-consuming) interact
 The command for this type of inquiry is
 
 `
-python3 dca2pdb.py -pf1 PF00017 -pf2 PF00041 -find_str
+python3 pfam2pdb.py -pf1 PF00017 -pf2 PF00041 -find_str
 `
 
 This will return an output like:
@@ -307,7 +307,7 @@ in those cases where the structure of the complex is missing. So far, the only a
 is adding the flag "-a" to a simple backmap research:
 
 `
-python3 dca2pdb.py -pf PF00940 -pdb 3e2e -a -vmd </path/to/bin/vmd>
+python3 pfam2pdb.py -pf PF00940 -pdb 3e2e -a -vmd </path/to/bin/vmd>
 `
 
 **Note:** in order to run, this function needs **VMD** Version 1.9.3. In order to link it,

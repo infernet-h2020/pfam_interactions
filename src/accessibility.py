@@ -180,4 +180,6 @@ def compute_accessibility(pdbname, pdb_path, pdb_dca_resids, backmap_table, allo
 			for x in SASA[dca_i]:
 				accessibility_file.write("{0}\t{1}\t{2}\t{3}\n".format(dca_i, x[0], x[1], x[2]))
 	print(acessibility_filename)
+
+
 	return SASA

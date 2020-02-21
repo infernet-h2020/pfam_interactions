@@ -73,7 +73,7 @@ if options['indexing']:
 
 	relative_options = initialize_options.initialize_options(pfam_version, rel_path=True)
 	
-	text = subprocess.run(["gzip -dc {0} | awk 'BEGIN{{fname=\"\"}}{{if (a[$1]!=1) {{if (fname!=\"\") {{close(fname)}}; x=substr($1,1,2); if (b[x]!=1) {{n[x]=1; b[x]=1}}; fname = \"{2}/\" x \"_{1}\"; print $1, fname, n[x]; a[$1]=1}}; print $0 >> fname; n[x]++}}'".format(options['pdb_uniprot_res_filename'], os.path.basename(options['pdb_uniprot_res_filename'])[:-3], relative_options['indexed_pdb_uniprot_res_folder'])], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
+	text = subprocess.run(["gzip -dc {0} | awk 'BEGIN{{fname=\"\"}}{{if (a[$1]!=1) {{if (fname!=\"\") {{close(fname)}}; x=substr($1,1,2); if (b[x]!=1) {{n[x]=1; b[x]=1}}; fname = \"{2}/\" x \"_{1}\"; print $1, fname, n[x]; a[$1]=1}}; print $0 >> fname; n[x]++}}'".format(options['pdb_uniprot_res_filename'], os.path.basename(options['pdb_uniprot_res_filename'])[:-3], options['src'] + '/' + relative_options['indexed_pdb_uniprot_res_folder'])], stdout=subprocess.PIPE, shell=True).stdout.decode('utf-8').split('\n')
 
 	with open(options['indexed_pdb_uniprot_res_index'], 'w') as index_file:
 		for line in text:
