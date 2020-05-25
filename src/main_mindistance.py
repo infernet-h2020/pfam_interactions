@@ -341,7 +341,7 @@ def main_mindistance(options):
 	mind_pdbs = new_mind_pdbs
 
 	interpolated_pdbs_string = "".join([x+", " for x in mind_pdbs])[:-2]
-	print("\nPDBs effectively interpolated:")
+	print("\nPDBs effectively interpolated (this set does not depend on your restriction options):")
 	if not interpolated_pdbs_string:
 		print("None. The algorithm will stop.")
 		exit(1)

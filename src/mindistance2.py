@@ -339,7 +339,7 @@ def mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder
 						print("{0}\t{1}\t{2}".format(os.path.basename(argmind[0]), argmind[1], optarg))
 						if i == 1:
 							out_file.write("# Files can be retrieved in {0}\n".format(os.path.dirname(argmind[0])))
-					out_file.write("{0}\t{1}\t{2}\n".format(os.path.basename(argmind[0]), argmind[1], optarg))
+						out_file.write("{0}\t{1}\t{2}\n".format(os.path.basename(argmind[0]), argmind[1], optarg))
 					if dca_filename and os.path.exists(dca_filename):
 						out_file_2.write("{0}\t{1}\t{2}\t{3}\t{4:30}\t{5}\t{6}\n".format(argmind2[0], argmind2[1], argmind2[2], argmind2[3][0], argmind2[3][1], argmind2[3][2], argmind2[3][3]))
 		

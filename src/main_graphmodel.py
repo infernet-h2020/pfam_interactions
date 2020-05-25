@@ -139,8 +139,7 @@ def main_graphprediction(options):
 	results_folder = options['results_folder']
 	cache_folder = options['cache']
 	dca_filename = options['dca_filename']
-	only_intra = options['only_intra']
-	only_inter = options['only_inter']
+	restrict_comparison = options['restrict_comparison']
 	find_str = options['find_structures']
 	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
 	check_architecture = options['check_architecture']
@@ -249,8 +248,7 @@ def main_graphmodel(options):
 	results_folder = options['results_folder']
 	cache_folder = options['cache']
 	dca_filename = options['dca_filename']
-	only_intra = options['only_intra']
-	only_inter = options['only_inter']
+	restrict_comparison = options['restrict_comparison']
 	find_str = options['find_structures']
 	pdb_uniprot_res_index_filename = options['indexed_pdb_uniprot_res_index']
 	check_architecture = options['check_architecture']
@@ -281,7 +279,10 @@ def main_graphmodel(options):
 			if not line or line.strip().startswith("#"):
 				continue
 			fields = line.split()
-			recs.append((int(fields[0]), int(fields[1]), float(fields[2])))
+			try:
+				recs.append((int(fields[0]), int(fields[1]), float(fields[2])))
+			except:
+				pass
 #			print(dca_filename, int(fields[0]), int(fields[1]), float(fields[2]))
 	recs = sorted(recs, key= lambda x: -x[2])
 
@@ -767,6 +768,7 @@ def main_graphmodel(options):
 			graphf.write('{0:6.1f} {1:6d} {2:6d} {3:6d} {4:6d} {5:6d} {6:6d}\n'.format(lines[0][i], int(lines[1][i]), int(lines[2][i]), int(lines[3][i]), int(lines[4][i]), int(lines[5][i]), int(lines[6][i])))
 			
 
+	"""
 	plt.subplot(111)
 	plt.plot(lines[0], lines[1]/lines[1].max(), '-o', label="Struct {0}".format(inpfam1))
 	plt.plot(lines[0], lines[2]/lines[2].max(), '-o', label="Struct {0}".format(inpfam2))
@@ -778,6 +780,25 @@ def main_graphmodel(options):
 	plt.xlabel("Cutoff connections in interface graph [A]")
 	plt.legend()
 	plt.savefig("prova.png")
+	"""
+
+	plt.subplot(111)
+	plt.plot(lines[0], lines[1], '-o', label="Struct {0}".format(inpfam1))
+	plt.plot(lines[0], lines[3], '-o', label="DCA {0}".format(inpfam1))
+	plt.plot(lines[0], lines[5], '-o', label="true in DCA {0}".format(inpfam1))
+	plt.ylabel("Size of largest component")
+	plt.xlabel("Cutoff connections in interface graph [A]")
+	plt.legend()
+	plt.savefig("prova1.png")
+	plt.subplot(111)
+	plt.plot(lines[0], lines[2], '-o', label="Struct {0}".format(inpfam2))
+	plt.plot(lines[0], lines[4], '-o', label="DCA {0}".format(inpfam2))
+	plt.plot(lines[0], lines[6], '-o', label="true in DCA {0}".format(inpfam2))
+	plt.ylabel("Size of largest component")
+	plt.xlabel("Cutoff connections in interface graph [A]")
+	plt.legend()
+	plt.savefig("prova2.png")
+
 
 	exit(1)	
 
@@ -1118,6 +1139,6 @@ def main_graphmodel(options):
 		print(interpolated_pdbs_string+"\n")
 
 	if inpfam:
-		mindistance.mindistance(mind_pdbs, inpfam, inpfam, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap, main_backmap_table, with_offset=False)
+		mindistance.mindistance(mind_pdbs, inpfam, inpfam, restrict_comparison, results_folder, dca_filename, pfam_pdbmap, main_backmap_table, with_offset=False)
 	else:
-		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, only_intra, only_inter, results_folder, dca_filename, pfam_pdbmap, main_backmap_table)
+		mindistance.mindistance(mind_pdbs, inpfam1, inpfam2, restrict_comparison, results_folder, dca_filename, pfam_pdbmap, main_backmap_table)

@@ -229,7 +229,7 @@ def compute_interactions(pdbname, pdb_path, pfam_in_pdb, pdb_uniprot_resids, uni
 				for pfam_acc_ann2, dca_i2 in pdb_dca_resids[(c2, r2)]:
 					pfam_acc2, cmult2 = pfam_acc_ann2.split('_')
 					L2 = dca_model_length[pfam_acc2]
-					if (not self_inter) and (not (pfam_acc1 == pfam_in_pdb[0][0] and pfam_acc2 == pfam_in_pdb[1][0])):	# Maintains the order of Pfams chosen at the beginning (in the command line!)
+					if (not self_inter) and (len(pfam_in_pdb) > 1 and (not (pfam_acc1 == pfam_in_pdb[0][0] and pfam_acc2 == pfam_in_pdb[1][0]))):	# Maintains the order of Pfams chosen at the beginning (in the command line!)
 						continue
 					if (pfam_acc1, pfam_acc2) not in interactions:
 						interactions[(pfam_acc1, pfam_acc2)], sc_interactions[(pfam_acc1, pfam_acc2)], CA_interactions[(pfam_acc1, pfam_acc2)] = {}, {}, {}

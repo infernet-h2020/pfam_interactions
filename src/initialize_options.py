@@ -9,7 +9,7 @@ def initialize_options(version, rel_path=False):
 
 	options = {}
 	if rel_path:
-		this_path = "src/"
+		this_path = ""
 	else:
 		this_path = os.path.dirname(os.path.abspath(__file__)) + '/'
 

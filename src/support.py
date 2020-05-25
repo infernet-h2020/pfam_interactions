@@ -416,7 +416,7 @@ def check_pdb_quality(pdb_path, resolution_threshold):
 			if line.startswith("EXPDTA"):
 				if line.split()[1] != "X-RAY":
 					print(pdb_path, "not an X-ray structure")
-					return False
+					return True#False
 			if line.startswith("REMARK   2 RESOLUTION"):
 				if float(line.split()[3]) > resolution_threshold:
 					print(pdb_path, "not enough resolution:", line.split()[3], ">", resolution_threshold)
