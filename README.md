@@ -1,4 +1,5 @@
 # Pfam domain-domain interaction benchmark
+[![DOI](https://zenodo.org/badge/174557999.svg)](https://zenodo.org/badge/latestdoi/174557999)
 
 This repository aims to give a complete list of all domain-domain interactions among [Pfam][pfam]
 domains present in each [PDB][pdb] structure. The benchmark is complemented by a library of Python 3.6
