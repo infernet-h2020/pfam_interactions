@@ -72,7 +72,8 @@ def backmap_pfam(target_pfam_accs, pdbname, pdb_path, pdb_pfam_filename, pdb_uni
 			if not line.strip():
 				continue
 			fields = line.split()
-			pdb_uniprot_index[fields[0]] = (src_path + fields[1], fields[2])
+			#pdb_uniprot_index[fields[0]] = (src_path + fields[1], fields[2])
+			pdb_uniprot_index[fields[0]] = (fields[1], fields[2])
 
 
 	print("Backmap: ")
