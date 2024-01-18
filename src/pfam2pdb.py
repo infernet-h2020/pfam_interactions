@@ -1,5 +1,5 @@
-import os
 import sys
+import os 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../src/')
 
 import initialize_options
@@ -32,7 +32,7 @@ def main_parser():
 	parser.add_argument('-dca', '--dca_filename', nargs='?')
 	parser.add_argument('-distout', '--dist_filename', nargs='?')
 	parser.add_argument('--only_distances', action='store_const', const='True', default='False')
-	parser.add_argument('-v', '--pfam_version', nargs='?', default='32')
+	parser.add_argument('-v', '--pfam_version', nargs='?', default='35')
 	parser.add_argument('-resolution', '--resolution_threshold', nargs='?', default='4.5')
 	parser.add_argument('-restrict', '--restrict_comparison', nargs='?', default='')
 	parser.add_argument('-out', '--output_path', nargs='?', default='None')

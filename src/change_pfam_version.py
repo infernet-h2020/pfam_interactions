@@ -43,7 +43,8 @@ if ans:
 				database_folder = fields[1]
 			else:
 				database_folder = ""
-			URL = "ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/{2}/{1}.gz".format(pfam_version, database_filename, database_folder)
+			#URL = "ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/{2}/{1}.gz".format(pfam_version, database_filename, database_folder)
+			URL = "http://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam{0}.0/{2}/{1}.gz".format(pfam_version, database_filename, database_folder)
 			destination = "{1}/{0}.gz".format(database_filename, options['database_files_relpath'])
 			if os.path.exists(destination):
 				continue

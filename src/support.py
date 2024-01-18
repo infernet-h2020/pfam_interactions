@@ -267,15 +267,15 @@ def download_pfam_files(pfam_acc, folder, msa_type, version, only_name=False):
 	else:	# Assumes you need the latest version
 		if msa_type == 'hmm':
 			if not only_name:
-				subprocess.run(["wget", "https://pfam.xfam.org/family/{0}/hmm".format(pfam_acc), "-O", "{1}/{0}.hmm".format(pfam_acc, folder)], stdout=open("/dev/null", 'w'))
+				subprocess.run(["wget", "https://pfam-legacy.xfam.org/family/{0}/hmm".format(pfam_acc), "-O", "{1}/{0}.hmm".format(pfam_acc, folder)], stdout=open("/dev/null", 'w'))
 			return folder + "/{0}.hmm".format(pfam_acc)
 		else:
 #			print("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version), only_name)
 			if not only_name:
 #				print("wget https://pfam.xfam.org/family/{0}/alignment/{1} -O {2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version))
-				subprocess.run(["wget", "https://pfam.xfam.org/family/{0}/alignment/{1}".format(pfam_acc, msa_type), "-O", "{2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version)], stdout=open("/dev/null", 'w'))
+				subprocess.run(["wget", "https://pfam-legacy.xfam.org/family/{0}/alignment/{1}".format(pfam_acc, msa_type), "-O", "{2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version)], stdout=open("/dev/null", 'w'))
 				if os.path.exists("{2}/{0}_{1}_v{3}.stockholm".format(pfam_acc, msa_type, folder, version)):
-					print("ERROR: Could not download the file https://pfam.xfam.org/family/{0}/alignment/{1}\nThe algorithm cannot proceed. Please download it and change its path in {2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder))
+					print("ERROR: Could not download the file https://pfam-legacy.xfam.org/family/{0}/alignment/{1}\nThe algorithm cannot proceed. Please download it and change its path in {2}/{0}_{1}.stockholm".format(pfam_acc, msa_type, folder))
 					exit(1)
 			return folder + "/{0}_{1}_v{2}.stockholm.gz".format(pfam_acc, msa_type, version)
 
